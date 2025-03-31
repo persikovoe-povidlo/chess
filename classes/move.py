@@ -9,4 +9,5 @@ class Move:
     col1: int
     row2: int
     col2: int
+    captured_piece: Piece | None
     piece: Piece
