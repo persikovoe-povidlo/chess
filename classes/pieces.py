@@ -24,6 +24,12 @@ class Piece:
         self.rect.topleft = (
             tile_to_coords(row, col))
 
+    def basic_movement_check(self, row, col):
+        if (not (self.row == row and self.col == col) and
+                (0 <= row < constants.BOARD_SIZE and 0 <= col < constants.BOARD_SIZE) and
+                (self.game.board[row][col].color != self.color if self.game.board[row][col] else True)):
+            return True
+
 
 class Pawn(Piece):
     def __init__(self, game, row, col, color):
@@ -32,15 +38,18 @@ class Pawn(Piece):
         self.direction = -1 if color == 'white' else 1
 
     def can_move(self, row, col):
-        if (self.row + self.direction == row and abs(self.col - col) == 1 and  # take opponent's piece
-                self.game.board[row][col]):
-            if self.game.board[row][col].color != self.color:
-                return True
-            if (self.game.last_moves[-1].piece == self.game.board[row - self.direction][col] and  # en' passant
-                    self.game.last_moves[-1].row1 == (constants.BOARD_SIZE - 1 - self.direction) % (
-                            constants.BOARD_SIZE - 1)):
-                self.game.board[row - self.direction][col] = None
-                return True
+        if not self.basic_movement_check(row, col):
+            return False
+        if self.row + self.direction == row and abs(self.col - col) == 1:  # take opponent's piece
+            if self.game.board[row][col]:
+                if self.game.board[row][col].color != self.color:
+                    return True
+            if self.game.last_moves:
+                if (self.game.last_moves[-1].piece == self.game.board[row - self.direction][col] and  # en' passant
+                        self.game.last_moves[-1].row1 == (constants.BOARD_SIZE - 1 - self.direction) % (
+                                constants.BOARD_SIZE - 1)):
+                    self.game.board[row - self.direction][col] = None
+                    return True
         if (self.row + self.direction == row and self.col == col and  # move forward once
                 self.game.board[row][col] is None):
             return True
@@ -59,6 +68,8 @@ class Bishop(Piece):
         self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-bishop.png').convert_alpha()
 
     def can_move(self, row, col):
+        if not self.basic_movement_check(row, col):
+            return False
         if self.row + self.col == row + col or self.row - self.col == row - col:  # check for diagonal movement
             for _row, _col in zip(  # check for pieces obstructing the path
                     range(self.row + 1 if row > self.row else self.row - 1, row, 1 if row > self.row else -1),
@@ -77,6 +88,8 @@ class Rook(Piece):
         self.has_moved = False
 
     def can_move(self, row, col):
+        if not self.basic_movement_check(row, col):
+            return False
         if self.col == col:  # check for vertical movement
             for _row in range(self.row + 1 if row > self.row else self.row - 1, row, 1 if row > self.row else -1):
                 if self.game.board[_row][col]:  # check for pieces obstructing the path
@@ -97,6 +110,8 @@ class Queen(Piece):
         self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-queen.png').convert_alpha()
 
     def can_move(self, row, col):
+        if not self.basic_movement_check(row, col):
+            return False
         if self.row + self.col == row + col or self.row - self.col == row - col:  # check for diagonal movement
             for _row, _col in zip(
                     range(self.row + 1 if row > self.row else self.row - 1, row, 1 if row > self.row else -1),
@@ -126,17 +141,19 @@ class King(Piece):
         self.castled = False
 
     def can_move(self, row, col):
+        if not self.basic_movement_check(row, col):
+            return False
         if abs(self.col - col) <= 1 and abs(self.row - row) <= 1:  # check for king movement
             return True
         if not self.castled:
-            if col - self.col == 2:
+            if col - self.col == 2 and self.row == row:
                 if type(self.game.board[self.row][self.col + 3]) is Rook:
                     if not self.game.board[self.row][self.col + 3].has_moved:
                         if (self.game.board[self.row][self.col + 2] is None and
                                 self.game.board[self.row][self.col + 1] is None):
                             self.has_moved = True
                             return True
-            if col - self.col == -2:
+            if col - self.col == -2 and self.row == row:
                 if type(self.game.board[self.row][self.col - 4]) is Rook:
                     if not self.game.board[self.row][self.col - 4].has_moved:
                         if (self.game.board[self.row][self.col - 3] is None and
@@ -154,6 +171,8 @@ class Knight(Piece):
         self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-knight.png').convert_alpha()
 
     def can_move(self, row, col):
+        if not self.basic_movement_check(row, col):
+            return False
         if (abs(self.col - col) == 2 and abs(self.row - row) == 1 or  # check for knight movement
                 abs(self.row - row) == 2 and abs(self.col - col) == 1):
             return True

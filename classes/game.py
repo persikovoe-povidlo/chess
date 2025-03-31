@@ -17,6 +17,8 @@ class Game:
         self.place_default_pieces()
         self.buttons = []
         self.place_buttons()
+        self.possible_moves = []
+        self.possible_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
 
     def logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -27,6 +29,10 @@ class Game:
                             if tile.rect.collidepoint(event.pos):
                                 if tile.color == self.turn:
                                     self.dragged_piece = tile
+                                    for row in range(constants.BOARD_SIZE):
+                                        for col in range(constants.BOARD_SIZE):
+                                            if self.dragged_piece.can_move(row, col):
+                                                self.possible_moves.append((row, col))
                 for button in self.buttons:
                     if button.rect.collidepoint(event.pos) and not button.pressed:
                         button.press()
@@ -35,16 +41,11 @@ class Game:
             if event.button == 1:
                 if self.dragged_piece:
                     col, row = coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-                    if (self.dragged_piece.can_move(row, col) and not (
-                            self.dragged_piece.row == row and self.dragged_piece.col == col) and (
-                            0 <= row < constants.BOARD_SIZE and 0 <= col < constants.BOARD_SIZE) and (
-                            self.board[row][col].color != self.dragged_piece.color if self.board[row][
-                                col] else True)):
-
+                    if (row, col) in self.possible_moves:
                         if type(self.dragged_piece) is King or type(self.dragged_piece) is Rook:
                             self.dragged_piece.has_moved = True
 
-                        if type(self.dragged_piece) is King and self.dragged_piece.col - col == 2:
+                        if type(self.dragged_piece) is King and self.dragged_piece.col - col == 2:  # check for castle
                             self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
                                                         self.board[row][self.dragged_piece.col - 4],
                                                         self.dragged_piece))
@@ -61,12 +62,13 @@ class Game:
                                                         self.board[row][col], self.dragged_piece))
 
                         self.dragged_piece.move(row, col)
-                        self.dragged_piece = None
                         self.change_turn()
                     else:
                         self.dragged_piece.rect.topleft = (
                             tile_to_coords(self.dragged_piece.row, self.dragged_piece.col))
-                        self.dragged_piece = None
+                    self.dragged_piece = None
+                    self.possible_moves.clear()
+                    self.possible_moves_surface.fill((0, 0, 0, 0))
                 for button in self.buttons:
                     button.release()
 
@@ -77,6 +79,7 @@ class Game:
     def draw(self):
         self.display.fill((50, 50, 50))
         self.draw_board()
+        self.draw_possible_moves()
         self.draw_buttons()
         self.draw_pieces()
 
@@ -124,6 +127,12 @@ class Game:
                 pygame.draw.rect(self.display, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
                         row % 2 != 0 and col % 2 != 0) else 'chocolate4',
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+
+    def draw_possible_moves(self):
+        for tile in self.possible_moves:
+            pygame.draw.rect(self.possible_moves_surface, (0, 0, 255, 100),
+                             (tile_to_coords(tile[0], tile[1]), (constants.TILE_SIZE, constants.TILE_SIZE)))
+        self.display.blit(self.possible_moves_surface, (0, 0))
 
     def place_piece(self, piece):
         self.board[piece.row][piece.col] = piece
