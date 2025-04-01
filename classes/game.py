@@ -30,12 +30,9 @@ class Game:
             for col in range(constants.BOARD_SIZE):
                 if (self.dragged_piece.can_see(row, col) and
                         (self.board[row][col].color != self.dragged_piece.color if self.board[row][col] else True)):
-                    if not self.active_player.in_check:
-                        self.possible_moves.append((row, col))
-                    else:
+
                         saved_row, saved_col = self.dragged_piece.row, self.dragged_piece.col
                         saved_piece = self.board[row][col]
-
                         self.dragged_piece.move(row, col)
 
                         defends_check = True
