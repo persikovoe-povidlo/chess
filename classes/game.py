@@ -35,7 +35,9 @@ class Game:
                                 self.dragged_piece = tile
                                 for row in range(constants.BOARD_SIZE):
                                     for col in range(constants.BOARD_SIZE):
-                                        if self.dragged_piece.can_move(row, col):
+                                        if (self.dragged_piece.can_see(row, col) and
+                                                (self.board[row][col].color != self.dragged_piece.color if
+                                                self.board[row][col] else True)):
                                             self.possible_moves.append((row, col))
                 for button in self.buttons:
                     if button.rect.collidepoint(event.pos) and not button.pressed:
@@ -77,7 +79,7 @@ class Game:
                                                             self.board[row][col], self.dragged_piece))
                         self.dragged_piece.move(row, col)
                         for piece in self.active_player.pieces:
-                            if piece.can_move(self.inactive_player.king.row, self.inactive_player.king.col):
+                            if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                                 self.inactive_player.in_check = True
                         self.change_turn()
                     else:  # place piece back
