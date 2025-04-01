@@ -28,33 +28,33 @@ class Game:
     def logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                for row in self.board:
-                    for tile in row:
-                        if tile:
-                            if tile.rect.collidepoint(event.pos) and tile.color == self.active_player.king.color:
-                                self.dragged_piece = tile
-                                for row in range(constants.BOARD_SIZE):
-                                    for col in range(constants.BOARD_SIZE):
-                                        if (self.dragged_piece.can_see(row, col) and
-                                                (self.board[row][col].color != self.dragged_piece.color if
-                                                self.board[row][col] else True)):
-                                            if not self.active_player.in_check:
-                                                self.possible_moves.append((row, col))
-                                            else:
-                                                saved_row, saved_col = self.dragged_piece.row, self.dragged_piece.col
-                                                saved_piece = self.board[row][col]
-                                                self.dragged_piece.move(row, col)
-                                                defends_check = True
-                                                for piece in self.inactive_player.pieces:
-                                                    if piece.can_see(self.active_player.king.row,
-                                                                     self.active_player.king.col):
-                                                        defends_check = False
-                                                if defends_check:
-                                                    self.possible_moves.append((row, col))
-                                                if saved_piece:
-                                                    self.inactive_player.pieces.append(saved_piece)
-                                                self.dragged_piece.move(saved_row, saved_col)
-                                                self.board[row][col] = saved_piece
+                for piece in self.active_player.pieces:
+                    if piece.rect.collidepoint(event.pos):
+                        self.dragged_piece = piece
+                        for row in range(constants.BOARD_SIZE):
+                            for col in range(constants.BOARD_SIZE):
+                                if (self.dragged_piece.can_see(row, col) and
+                                        (self.board[row][col].color != self.dragged_piece.color if self.board[row][col] else True)):
+                                    if not self.active_player.in_check:
+                                        self.possible_moves.append((row, col))
+                                    else:
+                                        saved_row, saved_col = self.dragged_piece.row, self.dragged_piece.col
+                                        saved_piece = self.board[row][col]
+
+                                        self.dragged_piece.move(row, col)
+
+                                        defends_check = True
+                                        for piece in self.inactive_player.pieces:
+                                            if piece.can_see(self.active_player.king.row,
+                                                             self.active_player.king.col):
+                                                defends_check = False
+
+                                        if defends_check:
+                                            self.possible_moves.append((row, col))
+                                        if saved_piece:
+                                            self.inactive_player.pieces.append(saved_piece)
+                                        self.dragged_piece.move(saved_row, saved_col)
+                                        self.board[row][col] = saved_piece
                 for button in self.buttons:
                     if button.rect.collidepoint(event.pos) and not button.pressed:
                         button.press()
