@@ -11,3 +11,4 @@ class Move:
     col2: int
     captured_piece: Piece | None
     piece: Piece
+    has_moved: bool | None = None

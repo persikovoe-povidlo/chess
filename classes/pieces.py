@@ -30,6 +30,9 @@ class Piece:
                 (self.game.board[row][col].color != self.color if self.game.board[row][col] else True)):
             return True
 
+    def in_check(self):
+        pass
+
 
 class Pawn(Piece):
     def __init__(self, game, row, col, color):
@@ -48,7 +51,6 @@ class Pawn(Piece):
                 if (self.game.last_moves[-1].piece == self.game.board[row - self.direction][col] and  # en' passant
                         self.game.last_moves[-1].row1 == (constants.BOARD_SIZE - 1 - self.direction) % (
                                 constants.BOARD_SIZE - 1)):
-                    self.game.board[row - self.direction][col] = None
                     return True
         if (self.row + self.direction == row and self.col == col and  # move forward once
                 self.game.board[row][col] is None):
@@ -138,20 +140,28 @@ class King(Piece):
         super().__init__(game, row, col, color)
         self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-king.png').convert_alpha()
         self.has_moved = False
-        self.castled = False
 
     def can_move(self, row, col):
         if not self.basic_movement_check(row, col):
             return False
+        #saved_piece = None
         if abs(self.col - col) <= 1 and abs(self.row - row) <= 1:  # check for king movement
+            #if self.game.board[row][col]:
+            #    saved_piece = self.game.board[row][col]
+            #    self.game.board[row][col] = None
+            for piece in self.game.inactive_player.pieces:
+                if piece.can_move(row, col):
+                    #self.game.board[row][col] = saved_piece
+                    return False
+            #self.game.board[row][col] = saved_piece
             return True
-        if not self.castled:
+
+        if not self.has_moved:  # check for castle
             if col - self.col == 2 and self.row == row:
                 if type(self.game.board[self.row][self.col + 3]) is Rook:
                     if not self.game.board[self.row][self.col + 3].has_moved:
                         if (self.game.board[self.row][self.col + 2] is None and
                                 self.game.board[self.row][self.col + 1] is None):
-                            self.has_moved = True
                             return True
             if col - self.col == -2 and self.row == row:
                 if type(self.game.board[self.row][self.col - 4]) is Rook:
@@ -159,8 +169,8 @@ class King(Piece):
                         if (self.game.board[self.row][self.col - 3] is None and
                                 self.game.board[self.row][self.col - 2] is None and
                                 self.game.board[self.row][self.col - 1] is None):
-                            self.has_moved = True
                             return True
+
         else:
             return False
 
