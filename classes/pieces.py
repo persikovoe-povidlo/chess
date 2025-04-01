@@ -17,6 +17,8 @@ class Piece:
         display.blit(self.surface, self.rect)
 
     def move(self, row, col):
+        if self.game.board[row][col]:
+            self.game.inactive_player.pieces.remove(self.game.board[row][col])
         self.game.board[row][col] = self
         self.game.board[self.row][self.col] = None
         self.row = row
@@ -146,7 +148,7 @@ class King(Piece):
                     return False
             return True
 
-        if not self.has_moved:  # check for castle
+        if not self.has_moved and not self.game.active_player.in_check:  # check for castle
             if col - self.col == 2 and self.row == row:
                 if type(self.game.board[self.row][self.col + 3]) is Rook:
                     if not self.game.board[self.row][self.col + 3].has_moved:

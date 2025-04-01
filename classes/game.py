@@ -38,7 +38,23 @@ class Game:
                                         if (self.dragged_piece.can_see(row, col) and
                                                 (self.board[row][col].color != self.dragged_piece.color if
                                                 self.board[row][col] else True)):
-                                            self.possible_moves.append((row, col))
+                                            if not self.active_player.in_check:
+                                                self.possible_moves.append((row, col))
+                                            else:
+                                                saved_row, saved_col = self.dragged_piece.row, self.dragged_piece.col
+                                                saved_piece = self.board[row][col]
+                                                self.dragged_piece.move(row, col)
+                                                defends_check = True
+                                                for piece in self.inactive_player.pieces:
+                                                    if piece.can_see(self.active_player.king.row,
+                                                                     self.active_player.king.col):
+                                                        defends_check = False
+                                                if defends_check:
+                                                    self.possible_moves.append((row, col))
+                                                if saved_piece:
+                                                    self.inactive_player.pieces.append(saved_piece)
+                                                self.dragged_piece.move(saved_row, saved_col)
+                                                self.board[row][col] = saved_piece
                 for button in self.buttons:
                     if button.rect.collidepoint(event.pos) and not button.pressed:
                         button.press()
@@ -178,25 +194,25 @@ class Game:
 
     def undo(self):
         if self.last_moves:
-            if self.last_moves[-1].has_moved is not None:
-                self.last_moves[-1].piece.has_moved = self.last_moves[-1].has_moved
+            last_move = self.last_moves[-1]
+            if last_move.has_moved is not None:
+                last_move.piece.has_moved = last_move.has_moved
             # check for en' passant
-            if self.last_moves[-1].piece.row != self.last_moves[-1].row2:
-                self.place_piece(self.last_moves[-1].captured_piece)
-                self.board[self.last_moves[-1].row2 - self.last_moves[-1].piece.direction][
-                    self.last_moves[-1].col2] = None
+            if last_move.piece.row != last_move.row2:
+                self.place_piece(last_move.captured_piece)
+                self.board[last_move.row2 - last_move.piece.direction][
+                    last_move.col2] = None
 
             # check for castle
-            if type(self.last_moves[-1].piece) is King and self.last_moves[-1].col1 - self.last_moves[-1].col2 == 2:
-                self.last_moves[-1].captured_piece.move(self.last_moves[-1].row2, self.last_moves[-1].col2 - 2)
+            if type(last_move.piece) is King and last_move.col1 - last_move.col2 == 2:
+                last_move.captured_piece.move(last_move.row2, last_move.col2 - 2)
 
-            if type(self.last_moves[-1].piece) is King and self.last_moves[-1].col1 - self.last_moves[-1].col2 == -2:
-                self.last_moves[-1].captured_piece.move(self.last_moves[-1].row2, self.last_moves[-1].col2 + 1)
+            if type(last_move.piece) is King and last_move.col1 - last_move.col2 == -2:
+                last_move.captured_piece.move(last_move.row2, last_move.col2 + 1)
 
             # revert move
-            self.board[self.last_moves[-1].row2][self.last_moves[-1].col2].move(self.last_moves[-1].row1,
-                                                                                self.last_moves[-1].col1)
-            if self.last_moves[-1].captured_piece:
-                self.place_piece(self.last_moves[-1].captured_piece)
+            self.board[last_move.row2][last_move.col2].move(last_move.row1, last_move.col1)
+            if last_move.captured_piece:
+                self.place_piece(last_move.captured_piece)
             self.change_turn()
             self.last_moves.pop()
