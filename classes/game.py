@@ -70,6 +70,8 @@ class Game:
                             self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
                                                         self.board[row - self.dragged_piece.direction][col],
                                                         self.dragged_piece))
+                            a = self.board[row - self.dragged_piece.direction][col]
+                            self.inactive_player.pieces.remove(self.board[row - self.dragged_piece.direction][col])
                             self.board[row - self.dragged_piece.direction][col] = None
 
                         elif type(self.dragged_piece) is King and self.dragged_piece.col - col == 2:  # check for castle
@@ -206,9 +208,11 @@ class Game:
             # check for castle
             if type(last_move.piece) is King and last_move.col1 - last_move.col2 == 2:
                 last_move.captured_piece.move(last_move.row2, last_move.col2 - 2)
+                self.inactive_player.pieces.remove(last_move.captured_piece)
 
-            if type(last_move.piece) is King and last_move.col1 - last_move.col2 == -2:
+            elif type(last_move.piece) is King and last_move.col1 - last_move.col2 == -2:
                 last_move.captured_piece.move(last_move.row2, last_move.col2 + 1)
+                self.inactive_player.pieces.remove(last_move.captured_piece)
 
             # revert move
             self.board[last_move.row2][last_move.col2].move(last_move.row1, last_move.col1)
