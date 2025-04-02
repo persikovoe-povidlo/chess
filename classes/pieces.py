@@ -47,7 +47,7 @@ class Pawn(Piece):
                     return True
             if self.game.last_moves:
                 if (self.game.last_moves[-1].piece == self.game.board[row - self.direction][col] and  # en' passant
-                        self.game.last_moves[-1].row1 == (constants.BOARD_SIZE - 1 - self.direction) % (
+                        self.game.last_moves[-1].row == (constants.BOARD_SIZE - 1 - self.direction) % (
                                 constants.BOARD_SIZE - 1)):
                     return True
         if (self.row + self.direction == row and self.col == col and  # move forward once

@@ -11,8 +11,8 @@ import constants
 class Game:
     def __init__(self, display):
         self.display = display
-        self.available_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
-
+        self.available_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
+                                                      pygame.SRCALPHA)
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
         self.dragged_piece = None
         self.last_moves = []
@@ -38,7 +38,7 @@ class Game:
                     defends_check = True
                     for opponents_piece in self.inactive_player.pieces:
                         if opponents_piece.can_see(self.active_player.king.row,
-                                         self.active_player.king.col):
+                                                   self.active_player.king.col):
                             defends_check = False
 
                     if defends_check:
@@ -48,45 +48,51 @@ class Game:
                     piece.move(saved_row, saved_col)
                     self.board[row][col] = saved_piece
 
-    def place_piece(self, piece):
+    def release_piece(self, piece):
         col, row = coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         if (row, col) in self.available_moves:
             if (type(piece) is Pawn and  # check for en' passant
                     abs(piece.col - col) == 1 and self.board[row][col] is None):
-                self.last_moves.append(Move(piece.row, piece.col, row, col,
-                                            self.board[row - piece.direction][col],
-                                            piece))
-                a = self.board[row - piece.direction][col]
+
+                self.last_moves.append(
+                    Move(piece.row, piece.col, self.board[row - piece.direction][col], piece,
+                         self.active_player.in_check))
                 self.inactive_player.pieces.remove(self.board[row - piece.direction][col])
                 self.board[row - piece.direction][col] = None
 
-            elif type(piece) is King and piece.col - col == 2:  # check for castle
-                self.last_moves.append(Move(piece.row, piece.col, row, col,
-                                            self.board[row][piece.col - 4],
-                                            piece))
-                self.board[piece.row][piece.col - 4].move(row, col + 1)
+            elif type(piece) is King and abs(piece.col - col) == 2:  # check for castle
+                if piece.col - col == 2:
+                    self.last_moves.append(Move(piece.row, piece.col, self.board[row][piece.col - 4], piece,
+                                                self.active_player.in_check))
+                    self.board[piece.row][piece.col - 4].move(row, col + 1)
 
-            elif type(piece) is King and piece.col - col == -2:  # check for castle
-                self.last_moves.append(Move(piece.row, piece.col, row, col,
-                                            self.board[row][piece.col + 3],
-                                            piece))
-                self.board[piece.row][piece.col + 3].move(row, col - 1)
+                if piece.col - col == -2:
+                    self.last_moves.append(Move(piece.row, piece.col, self.board[row][piece.col + 3], piece,
+                                                self.active_player.in_check))
+                    self.board[piece.row][piece.col + 3].move(row, col - 1)
 
-            else:
+            else:  # default move
                 if type(piece) is King or type(piece) is Rook:
-                    self.last_moves.append(Move(piece.row, piece.col, row, col,
-                                                self.board[row][col], piece,
-                                                piece.has_moved))
+                    self.last_moves.append(
+                        Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check,
+                             piece.has_moved))
                     piece.has_moved = True
-                else:  # default move
-                    self.last_moves.append(Move(piece.row, piece.col, row, col,
-                                                self.board[row][col], piece))
+                else:
+                    self.last_moves.append(
+                        Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check))
+
             piece.move(row, col)
-            if self.active_player.in_check:
-                self.active_player.in_check = False
+
+            if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
+                print(1)
+                self.active_player.pieces.remove(piece)
+                self.new_piece(Queen(self, piece.row, piece.col, piece.color))
+
+            self.active_player.in_check = False
             for active_piece in self.active_player.pieces:
                 if active_piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                     self.inactive_player.in_check = True
+
             self.change_turn()
         else:  # place piece back if move is not available
             piece.rect.topleft = (
@@ -103,7 +109,7 @@ class Game:
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 if self.dragged_piece:
-                    self.place_piece(self.dragged_piece)
+                    self.release_piece(self.dragged_piece)
                     self.dragged_piece = None
                     self.available_moves.clear()
                     self.available_moves_surface.fill((0, 0, 0, 0))
@@ -200,6 +206,7 @@ class Game:
             self.active_player.pieces.append(piece)
         else:
             self.inactive_player.pieces.append(piece)
+        return piece
 
     def draw_pieces(self):
         for row in self.board:
@@ -212,26 +219,28 @@ class Game:
     def undo(self):
         if self.last_moves:
             last_move = self.last_moves[-1]
+
             if last_move.has_moved is not None:
                 last_move.piece.has_moved = last_move.has_moved
-            # check for en' passant
-            if last_move.piece.row != last_move.row2:
-                self.new_piece(last_move.captured_piece)
-                self.board[last_move.row2 - last_move.piece.direction][
-                    last_move.col2] = None
+
+            # check for promotion
+            if type(last_move.piece) is Pawn and last_move.piece.row % (constants.BOARD_SIZE - 1) == 0:
+                self.inactive_player.pieces.pop()
+                self.new_piece(last_move.piece)
 
             # check for castle
-            if type(last_move.piece) is King and last_move.col1 - last_move.col2 == 2:
-                last_move.captured_piece.move(last_move.row2, last_move.col2 - 2)
+            if type(last_move.piece) is King and last_move.col - last_move.piece.col == 2:
+                last_move.captured_piece.move(last_move.piece.row, last_move.piece.col - 2)
                 self.inactive_player.pieces.remove(last_move.captured_piece)
 
-            elif type(last_move.piece) is King and last_move.col1 - last_move.col2 == -2:
-                last_move.captured_piece.move(last_move.row2, last_move.col2 + 1)
+            elif type(last_move.piece) is King and last_move.col - last_move.piece.col == -2:
+                last_move.captured_piece.move(last_move.piece.row, last_move.piece.col + 1)
                 self.inactive_player.pieces.remove(last_move.captured_piece)
 
             # revert move
-            self.board[last_move.row2][last_move.col2].move(last_move.row1, last_move.col1)
+            self.board[last_move.piece.row][last_move.piece.col].move(last_move.row, last_move.col)
             if last_move.captured_piece:
                 self.new_piece(last_move.captured_piece)
+
             self.change_turn()
             self.last_moves.pop()
