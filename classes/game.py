@@ -11,13 +11,13 @@ import constants
 class Game:
     def __init__(self, display):
         self.display = display
-        self.possible_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
+        self.available_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
 
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
         self.dragged_piece = None
         self.last_moves = []
         self.buttons = []
-        self.possible_moves = []
+        self.available_moves = []
 
         self.active_player = Player(King(self, 7, 4, 'white'))
         self.inactive_player = Player(King(self, 0, 4, 'black'))
@@ -25,71 +25,71 @@ class Game:
         self.place_default_pieces()
         self.place_buttons()
 
-    def get_available_moves_for_dragged_piece(self):
+    def get_available_moves_for_piece(self, piece):
         for row in range(constants.BOARD_SIZE):
             for col in range(constants.BOARD_SIZE):
-                if (self.dragged_piece.can_see(row, col) and
-                        (self.board[row][col].color != self.dragged_piece.color if self.board[row][col] else True)):
+                if (piece.can_see(row, col) and
+                        (self.board[row][col].color != piece.color if self.board[row][col] else True)):
 
-                        saved_row, saved_col = self.dragged_piece.row, self.dragged_piece.col
-                        saved_piece = self.board[row][col]
-                        self.dragged_piece.move(row, col)
+                    saved_row, saved_col = piece.row, piece.col
+                    saved_piece = self.board[row][col]
+                    piece.move(row, col)
 
-                        defends_check = True
-                        for piece in self.inactive_player.pieces:
-                            if piece.can_see(self.active_player.king.row,
-                                             self.active_player.king.col):
-                                defends_check = False
+                    defends_check = True
+                    for opponents_piece in self.inactive_player.pieces:
+                        if opponents_piece.can_see(self.active_player.king.row,
+                                         self.active_player.king.col):
+                            defends_check = False
 
-                        if defends_check:
-                            self.possible_moves.append((row, col))
-                        if saved_piece:
-                            self.inactive_player.pieces.append(saved_piece)
-                        self.dragged_piece.move(saved_row, saved_col)
-                        self.board[row][col] = saved_piece
+                    if defends_check:
+                        self.available_moves.append((row, col))
+                    if saved_piece:
+                        self.inactive_player.pieces.append(saved_piece)
+                    piece.move(saved_row, saved_col)
+                    self.board[row][col] = saved_piece
 
-    def place_dragged_piece(self):
+    def place_piece(self, piece):
         col, row = coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-        if (row, col) in self.possible_moves:
-            if (type(self.dragged_piece) is Pawn and  # check for en' passant
-                    abs(self.dragged_piece.col - col) == 1 and self.board[row][col] is None):
-                self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
-                                            self.board[row - self.dragged_piece.direction][col],
-                                            self.dragged_piece))
-                a = self.board[row - self.dragged_piece.direction][col]
-                self.inactive_player.pieces.remove(self.board[row - self.dragged_piece.direction][col])
-                self.board[row - self.dragged_piece.direction][col] = None
+        if (row, col) in self.available_moves:
+            if (type(piece) is Pawn and  # check for en' passant
+                    abs(piece.col - col) == 1 and self.board[row][col] is None):
+                self.last_moves.append(Move(piece.row, piece.col, row, col,
+                                            self.board[row - piece.direction][col],
+                                            piece))
+                a = self.board[row - piece.direction][col]
+                self.inactive_player.pieces.remove(self.board[row - piece.direction][col])
+                self.board[row - piece.direction][col] = None
 
-            elif type(self.dragged_piece) is King and self.dragged_piece.col - col == 2:  # check for castle
-                self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
-                                            self.board[row][self.dragged_piece.col - 4],
-                                            self.dragged_piece))
-                self.board[self.dragged_piece.row][self.dragged_piece.col - 4].move(row, col + 1)
+            elif type(piece) is King and piece.col - col == 2:  # check for castle
+                self.last_moves.append(Move(piece.row, piece.col, row, col,
+                                            self.board[row][piece.col - 4],
+                                            piece))
+                self.board[piece.row][piece.col - 4].move(row, col + 1)
 
-            elif type(self.dragged_piece) is King and self.dragged_piece.col - col == -2:  # check for castle
-                self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
-                                            self.board[row][self.dragged_piece.col + 3],
-                                            self.dragged_piece))
-                self.board[self.dragged_piece.row][self.dragged_piece.col + 3].move(row, col - 1)
+            elif type(piece) is King and piece.col - col == -2:  # check for castle
+                self.last_moves.append(Move(piece.row, piece.col, row, col,
+                                            self.board[row][piece.col + 3],
+                                            piece))
+                self.board[piece.row][piece.col + 3].move(row, col - 1)
 
             else:
-                if type(self.dragged_piece) is King or type(self.dragged_piece) is Rook:
-                    self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
-                                                self.board[row][col], self.dragged_piece,
-                                                self.dragged_piece.has_moved))
-                    self.dragged_piece.has_moved = True
+                if type(piece) is King or type(piece) is Rook:
+                    self.last_moves.append(Move(piece.row, piece.col, row, col,
+                                                self.board[row][col], piece,
+                                                piece.has_moved))
+                    piece.has_moved = True
                 else:  # default move
-                    self.last_moves.append(Move(self.dragged_piece.row, self.dragged_piece.col, row, col,
-                                                self.board[row][col], self.dragged_piece))
-            self.dragged_piece.move(row, col)
+                    self.last_moves.append(Move(piece.row, piece.col, row, col,
+                                                self.board[row][col], piece))
+            piece.move(row, col)
             self.active_player.in_check = not self.active_player.in_check
-            for piece in self.active_player.pieces:
-                if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
+            for active_piece in self.active_player.pieces:
+                if active_piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                     self.inactive_player.in_check = True
             self.change_turn()
-        else:  # place piece back
-            self.dragged_piece.rect.topleft = (
-                tile_to_coords(self.dragged_piece.row, self.dragged_piece.col))
+        else:  # place piece back if move is not available
+            piece.rect.topleft = (
+                tile_to_coords(piece.row, piece.col))
 
     def dragged_piece_logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -97,15 +97,15 @@ class Game:
                 for piece in self.active_player.pieces:
                     if piece.rect.collidepoint(event.pos):
                         self.dragged_piece = piece
-                        self.get_available_moves_for_dragged_piece()
+                        self.get_available_moves_for_piece(self.dragged_piece)
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 if self.dragged_piece:
-                    self.place_dragged_piece()
+                    self.place_piece(self.dragged_piece)
                     self.dragged_piece = None
-                    self.possible_moves.clear()
-                    self.possible_moves_surface.fill((0, 0, 0, 0))
+                    self.available_moves.clear()
+                    self.available_moves_surface.fill((0, 0, 0, 0))
 
         if event.type == pygame.MOUSEMOTION:
             if self.dragged_piece:
@@ -130,7 +130,7 @@ class Game:
     def draw(self):
         self.display.fill((50, 50, 50))
         self.draw_board()
-        self.draw_possible_moves()
+        self.draw_available_moves()
         self.draw_buttons()
         self.draw_pieces()
 
@@ -177,21 +177,21 @@ class Game:
                         row % 2 != 0 and col % 2 != 0) else 'chocolate4',
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
-    def draw_possible_moves(self):
-        for tile in self.possible_moves:
+    def draw_available_moves(self):
+        for tile in self.available_moves:
             row, col = tile[0], tile[1]
             x, y = tile_to_coords(row, col)
             if self.board[row][col] is None:
-                pygame.draw.circle(self.possible_moves_surface, (0, 0, 255, 100),
+                pygame.draw.circle(self.available_moves_surface, (0, 0, 255, 100),
                                    (x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2),
                                    constants.TILE_SIZE // 8)
             else:
-                pygame.draw.rect(self.possible_moves_surface, (0, 0, 255, 100),
+                pygame.draw.rect(self.available_moves_surface, (0, 0, 255, 100),
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
         if self.dragged_piece:
-            pygame.draw.rect(self.possible_moves_surface, (0, 0, 255, 100), (tile_to_coords(
+            pygame.draw.rect(self.available_moves_surface, (0, 0, 255, 100), (tile_to_coords(
                 self.dragged_piece.row, self.dragged_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
-        self.display.blit(self.possible_moves_surface, (0, 0))
+        self.display.blit(self.available_moves_surface, (0, 0))
 
     def new_piece(self, piece):
         self.board[piece.row][piece.col] = piece
