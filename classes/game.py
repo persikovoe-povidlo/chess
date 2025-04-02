@@ -82,7 +82,8 @@ class Game:
                     self.last_moves.append(Move(piece.row, piece.col, row, col,
                                                 self.board[row][col], piece))
             piece.move(row, col)
-            self.active_player.in_check = not self.active_player.in_check
+            if self.active_player.in_check:
+                self.active_player.in_check = False
             for active_piece in self.active_player.pieces:
                 if active_piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                     self.inactive_player.in_check = True
