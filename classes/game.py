@@ -128,19 +128,8 @@ class Game:
             self.dragged_piece_logic(event)
         else:
             self.promotion_window.logic(event)
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                for button in self.buttons:
-                    if button.rect.collidepoint(event.pos) and not button.pressed:
-                        button.press()
-
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                for button in self.buttons:
-                    button.release()
-
-        if event.type == pygame.MOUSEMOTION:
-            pass
+        for button in self.buttons:
+            button.logic(event)
 
     def draw(self):
         self.display.fill((50, 50, 50))
@@ -176,8 +165,8 @@ class Game:
 
     def place_buttons(self):
         self.buttons.append(UndoButton(self, constants.BOARD_POS_X - constants.TILE_SIZE,
-                                       constants.BOARD_POS_Y + constants.TILE_SIZE * 4, constants.TILE_SIZE,
-                                       constants.TILE_SIZE // 2, 'gray10', 'gray6'))
+                                       constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE // 2, constants.TILE_SIZE,
+                                       constants.TILE_SIZE, 'gray30', 'gray27'))
 
     def draw_buttons(self):
         for button in self.buttons:
@@ -195,6 +184,13 @@ class Game:
 
     def draw_highlighted_tiles(self):
         self.available_moves_surface.fill((0, 0, 0, 0))
+        if self.last_moves:
+            last_move = self.last_moves[-1]
+            pygame.draw.rect(self.available_moves_surface, (0, 255, 0, 70), (tile_to_coords(
+                last_move.row, last_move.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+            pygame.draw.rect(self.available_moves_surface, (0, 255, 0, 70), (tile_to_coords(
+                last_move.piece.row, last_move.piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+
         for tile in self.available_moves:
             row, col = tile[0], tile[1]
             x, y = tile_to_coords(row, col)
@@ -205,16 +201,11 @@ class Game:
             else:
                 pygame.draw.rect(self.available_moves_surface, (0, 0, 255, 100),
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
-        if self.last_moves:
-            last_move = self.last_moves[-1]
-            pygame.draw.rect(self.available_moves_surface, (0, 255, 0, 100), (tile_to_coords(
-                last_move.row, last_move.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
-            pygame.draw.rect(self.available_moves_surface, (0, 255, 0, 100), (tile_to_coords(
-                last_move.piece.row, last_move.piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         if self.dragged_piece:
             pygame.draw.rect(self.available_moves_surface, (0, 0, 255, 100), (tile_to_coords(
                 self.dragged_piece.row, self.dragged_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+
         if self.active_player.in_check:
             x, y = tile_to_coords(self.active_player.king.row, self.active_player.king.col)
             x, y = x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2

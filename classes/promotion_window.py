@@ -49,13 +49,6 @@ class PromotionWindow:
                         self.game.new_piece(piece.class_name(self.game, self.row, self.col, piece.color))
                         self.promotion = False
                         self.game.change_turn()
-        '''if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                if self.dragged_piece:
-                    self.release_piece(self.dragged_piece)
-                    self.dragged_piece = None
-                    self.available_moves.clear()
-                    self.available_moves_surface.fill((0, 0, 0, 0))'''
 
         if event.type == pygame.MOUSEMOTION:
             self.highlighted_piece_rect = None
