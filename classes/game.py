@@ -105,7 +105,7 @@ class Game:
         else:  # place piece back if move is not available
             piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
 
-    def selected_piece_logic(self, event):
+    def dragged_piece_logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if self.selected_piece:
@@ -114,15 +114,9 @@ class Game:
                     self.available_moves.clear()
                 for piece in self.active_player.pieces:
                     if piece.rect.collidepoint(event.pos):
+                        self.dragged_piece = piece
                         self.selected_piece = piece
                         self.get_available_moves_for_piece(self.selected_piece)
-
-    def dragged_piece_logic(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                for piece in self.active_player.pieces:
-                    if piece.rect.collidepoint(event.pos):
-                        self.dragged_piece = piece
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
@@ -136,7 +130,6 @@ class Game:
 
     def logic(self, event):
         if not self.promotion_window.promotion:
-            self.selected_piece_logic(event)
             self.dragged_piece_logic(event)
         else:
             self.promotion_window.logic(event)
