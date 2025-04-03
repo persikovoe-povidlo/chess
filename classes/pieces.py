@@ -10,11 +10,11 @@ class Piece:
         self.row = row
         self.col = col
         self.color = color
-        self.surface = pygame.transform.scale(pygame.Surface((0, 0)), (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.surface = pygame.Surface((0, 0))
         self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
 
-    def draw(self, display):
-        display.blit(self.surface, self.rect)
+    def draw(self):
+        self.game.display.blit(self.surface, self.rect)
 
     def move(self, row, col):
         if self.game.board[row][col]:
@@ -23,8 +23,7 @@ class Piece:
         self.game.board[self.row][self.col] = None
         self.row = row
         self.col = col
-        self.rect.topleft = (
-            tile_to_coords(row, col))
+        self.rect.topleft = (tile_to_coords(row, col))
 
     def basic_movement_check(self, row, col):
         if (not (self.row == row and self.col == col) and
@@ -35,7 +34,10 @@ class Piece:
 class Pawn(Piece):
     def __init__(self, game, row, col, color):
         super().__init__(game, row, col, color)
-        self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-pawn.png').convert_alpha()
+        self.surface = pygame.transform.scale(
+            pygame.image.load('assets/pieces-basic-png/' + self.color + '-pawn.png').convert_alpha(),
+            (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
         self.direction = -1 if color == 'white' else 1
 
     def can_see(self, row, col):
@@ -65,7 +67,10 @@ class Pawn(Piece):
 class Bishop(Piece):
     def __init__(self, game, row, col, color):
         super().__init__(game, row, col, color)
-        self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-bishop.png').convert_alpha()
+        self.surface = pygame.transform.scale(
+            pygame.image.load('assets/pieces-basic-png/' + self.color + '-bishop.png').convert_alpha(),
+            (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
 
     def can_see(self, row, col):
         if not self.basic_movement_check(row, col):
@@ -84,7 +89,10 @@ class Bishop(Piece):
 class Rook(Piece):
     def __init__(self, game, row, col, color):
         super().__init__(game, row, col, color)
-        self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-rook.png').convert_alpha()
+        self.surface = pygame.transform.scale(
+            pygame.image.load('assets/pieces-basic-png/' + self.color + '-rook.png').convert_alpha(),
+            (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
         self.has_moved = False
 
     def can_see(self, row, col):
@@ -107,7 +115,10 @@ class Rook(Piece):
 class Queen(Piece):
     def __init__(self, game, row, col, color):
         super().__init__(game, row, col, color)
-        self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-queen.png').convert_alpha()
+        self.surface = pygame.transform.scale(
+            pygame.image.load('assets/pieces-basic-png/' + self.color + '-queen.png').convert_alpha(),
+            (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
 
     def can_see(self, row, col):
         if not self.basic_movement_check(row, col):
@@ -136,7 +147,10 @@ class Queen(Piece):
 class King(Piece):
     def __init__(self, game, row, col, color):
         super().__init__(game, row, col, color)
-        self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-king.png').convert_alpha()
+        self.surface = pygame.transform.scale(
+            pygame.image.load('assets/pieces-basic-png/' + self.color + '-king.png').convert_alpha(),
+            (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
         self.has_moved = False
 
     def can_see(self, row, col):
@@ -170,7 +184,10 @@ class King(Piece):
 class Knight(Piece):
     def __init__(self, game, row, col, color):
         super().__init__(game, row, col, color)
-        self.surface = pygame.image.load('assets/pieces-basic-png/' + self.color + '-knight.png').convert_alpha()
+        self.surface = pygame.transform.scale(
+            pygame.image.load('assets/pieces-basic-png/' + self.color + '-knight.png').convert_alpha(),
+            (constants.TILE_SIZE, constants.TILE_SIZE))
+        self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
 
     def can_see(self, row, col):
         if not self.basic_movement_check(row, col):

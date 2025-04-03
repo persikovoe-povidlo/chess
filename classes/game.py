@@ -4,6 +4,7 @@ from classes.buttons import UndoButton
 from classes.move import Move
 from classes.pieces import Pawn, Bishop, Rook, Queen, Knight, King
 from classes.player import Player
+from classes.promotion_window import PromotionWindow
 from functions import tile_to_coords, coords_to_tile
 import constants
 
@@ -14,6 +15,7 @@ class Game:
         self.available_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
                                                       pygame.SRCALPHA)
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
+        self.promotion_window = PromotionWindow(self)
         self.dragged_piece = None
         self.last_moves = []
         self.buttons = []
@@ -24,6 +26,9 @@ class Game:
 
         self.place_default_pieces()
         self.place_buttons()
+
+    def draw_promotion_window(self):
+        self.promotion_window.draw()
 
     def get_available_moves_for_piece(self, piece):
         for row in range(constants.BOARD_SIZE):
@@ -71,7 +76,7 @@ class Game:
                                                 self.active_player.in_check))
                     self.board[piece.row][piece.col + 3].move(row, col - 1)
 
-            else:  # default move
+            else:  # ordinary move
                 if type(piece) is King or type(piece) is Rook:
                     self.last_moves.append(
                         Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check,
@@ -84,19 +89,21 @@ class Game:
             piece.move(row, col)
 
             if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
-                print(1)
+                self.promotion_window.promotion = True
                 self.active_player.pieces.remove(piece)
-                self.new_piece(Queen(self, piece.row, piece.col, piece.color))
+                self.board[row][col] = None
+                self.promotion_window.place(row, col, piece.direction)
+                # self.new_piece(Queen(self, piece.row, piece.col, piece.color))
 
             self.active_player.in_check = False
             for active_piece in self.active_player.pieces:
                 if active_piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                     self.inactive_player.in_check = True
 
-            self.change_turn()
+            if not self.promotion_window.promotion:
+                self.change_turn()
         else:  # place piece back if move is not available
-            piece.rect.topleft = (
-                tile_to_coords(piece.row, piece.col))
+            piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
 
     def dragged_piece_logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -119,7 +126,10 @@ class Game:
                 self.dragged_piece.rect.center = pygame.mouse.get_pos()
 
     def logic(self, event):
-        self.dragged_piece_logic(event)
+        if not self.promotion_window.promotion:
+            self.dragged_piece_logic(event)
+        else:
+            self.promotion_window.logic(event)
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 for button in self.buttons:
@@ -140,6 +150,7 @@ class Game:
         self.draw_available_moves()
         self.draw_buttons()
         self.draw_pieces()
+        self.draw_promotion_window()
 
     def place_default_pieces(self):
         self.new_piece(self.active_player.king)
@@ -172,7 +183,7 @@ class Game:
 
     def draw_buttons(self):
         for button in self.buttons:
-            button.draw(self.display)
+            button.draw()
 
     def change_turn(self):
         self.active_player, self.inactive_player = self.inactive_player, self.active_player
@@ -212,13 +223,16 @@ class Game:
         for row in self.board:
             for piece in row:
                 if piece:
-                    piece.draw(self.display)
+                    piece.draw()
         if self.dragged_piece:
-            self.dragged_piece.draw(self.display)
+            self.dragged_piece.draw()
 
     def undo(self):
         if self.last_moves:
             last_move = self.last_moves[-1]
+            if self.promotion_window.promotion:
+                self.change_turn()
+                self.promotion_window.promotion = False
 
             if last_move.has_moved is not None:
                 last_move.piece.has_moved = last_move.has_moved
