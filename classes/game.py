@@ -59,9 +59,8 @@ class Game:
             if (type(piece) is Pawn and  # check for en' passant
                     abs(piece.col - col) == 1 and self.board[row][col] is None):
 
-                self.last_moves.append(
-                    Move(piece.row, piece.col, self.board[row - piece.direction][col], piece,
-                         self.active_player.in_check))
+                self.last_moves.append(Move(piece.row, piece.col, self.board[row - piece.direction][col], piece,
+                                            self.active_player.in_check))
                 self.inactive_player.pieces.remove(self.board[row - piece.direction][col])
                 self.board[row - piece.direction][col] = None
 
@@ -94,9 +93,9 @@ class Game:
                 self.board[row][col] = None
                 self.promotion_window.place(row, col, piece.direction)
 
-            self.active_player.in_check = False
-            for active_piece in self.active_player.pieces:
-                if active_piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
+            self.inactive_player.in_check = False
+            for piece in self.active_player.pieces:
+                if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                     self.inactive_player.in_check = True
 
             if not self.promotion_window.promotion:
