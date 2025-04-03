@@ -17,6 +17,7 @@ class Game:
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
         self.promotion_window = PromotionWindow(self)
         self.dragged_piece = None
+        self.selected_piece = None
         self.last_moves = []
         self.buttons = []
         self.available_moves = []
@@ -86,6 +87,7 @@ class Game:
                         Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check))
 
             piece.move(row, col)
+            self.available_moves.clear()
 
             if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
                 self.promotion_window.promotion = True
@@ -103,20 +105,30 @@ class Game:
         else:  # place piece back if move is not available
             piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
 
+    def selected_piece_logic(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                if self.selected_piece:
+                    self.release_piece(self.selected_piece)
+                    self.selected_piece = None
+                    self.available_moves.clear()
+                for piece in self.active_player.pieces:
+                    if piece.rect.collidepoint(event.pos):
+                        self.selected_piece = piece
+                        self.get_available_moves_for_piece(self.selected_piece)
+
     def dragged_piece_logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 for piece in self.active_player.pieces:
                     if piece.rect.collidepoint(event.pos):
                         self.dragged_piece = piece
-                        self.get_available_moves_for_piece(self.dragged_piece)
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 if self.dragged_piece:
                     self.release_piece(self.dragged_piece)
                     self.dragged_piece = None
-                    self.available_moves.clear()
 
         if event.type == pygame.MOUSEMOTION:
             if self.dragged_piece:
@@ -124,6 +136,7 @@ class Game:
 
     def logic(self, event):
         if not self.promotion_window.promotion:
+            self.selected_piece_logic(event)
             self.dragged_piece_logic(event)
         else:
             self.promotion_window.logic(event)
