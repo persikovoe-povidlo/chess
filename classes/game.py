@@ -112,26 +112,32 @@ class Game:
             if event.button == 1:
                 for piece in self.active_player.pieces:
                     if piece.rect.collidepoint(event.pos):
+                        self.available_moves.clear()
+                        if piece != self.selected_piece:
+                            self.selected_piece = None
                         self.dragged_piece = piece
                         self.get_available_moves_for_piece(self.dragged_piece)
-                if self.selected_piece and self.selected_piece != self.dragged_piece:
+                if self.selected_piece and self.dragged_piece is None:
                     self.release_piece(self.selected_piece)
                     self.selected_piece = None
                     self.available_moves.clear()
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
-                if self.dragged_piece:
-                    self.release_piece(self.dragged_piece)
-                    self.dragged_piece = None
-                if self.selected_piece is None:
-                    for piece in self.active_player.pieces:
-                        if piece.rect.collidepoint(event.pos):
-                            self.selected_piece = piece
-                            self.get_available_moves_for_piece(self.selected_piece)
+                if self.selected_piece is None and self.dragged_piece:
+                    self.selected_piece = self.dragged_piece
+                elif self.dragged_piece:
+                    if coords_to_tile(event.pos[0], event.pos[1]) == (self.dragged_piece.col, self.dragged_piece.row):
+                        self.available_moves.clear()
+                    self.selected_piece = None
                 else:
                     self.selected_piece = None
                     self.available_moves.clear()
+                if self.dragged_piece:
+                    if coords_to_tile(event.pos[0], event.pos[1]) != (self.dragged_piece.col, self.dragged_piece.row):
+                        self.selected_piece = None
+                    self.release_piece(self.dragged_piece)
+                    self.dragged_piece = None
 
         if event.type == pygame.MOUSEMOTION:
             if self.dragged_piece:
@@ -227,13 +233,13 @@ class Game:
                 pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100),
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
-        if self.selected_piece:
-            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
-                self.selected_piece.row, self.selected_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
-
-        elif self.dragged_piece:
+        if self.dragged_piece:
             pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
                 self.dragged_piece.row, self.dragged_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+
+        elif self.selected_piece:
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
+                self.selected_piece.row, self.selected_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         if self.active_player.in_check:
             x, y = tile_to_coords(self.active_player.king.row, self.active_player.king.col)
