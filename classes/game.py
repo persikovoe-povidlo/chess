@@ -11,9 +11,10 @@ import constants
 
 class Game:
     def __init__(self, display):
+        self.game_over = False
         self.display = display
-        self.available_moves_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
-                                                      pygame.SRCALPHA)
+        self.highlighted_tiles_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
+                                                        pygame.SRCALPHA)
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
         self.promotion_window = PromotionWindow(self)
         self.dragged_piece = None
@@ -100,41 +101,52 @@ class Game:
                 if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
                     self.inactive_player.in_check = True
 
-            if not self.promotion_window.promotion:
-                self.change_turn()
+            self.change_turn()
+            if not self.check_if_player_has_moves():
+                self.game_over = True
         else:  # place piece back if move is not available
             piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
 
-    def dragged_piece_logic(self, event):
+    def selected_piece_logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                if self.selected_piece:
-                    self.release_piece(self.selected_piece)
-                    self.selected_piece = None
-                    self.available_moves.clear()
                 for piece in self.active_player.pieces:
                     if piece.rect.collidepoint(event.pos):
                         self.dragged_piece = piece
-                        self.selected_piece = piece
-                        self.get_available_moves_for_piece(self.selected_piece)
+                        self.get_available_moves_for_piece(self.dragged_piece)
+                if self.selected_piece and self.selected_piece != self.dragged_piece:
+                    self.release_piece(self.selected_piece)
+                    self.selected_piece = None
+                    self.available_moves.clear()
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 if self.dragged_piece:
                     self.release_piece(self.dragged_piece)
                     self.dragged_piece = None
+                if self.selected_piece is None:
+                    for piece in self.active_player.pieces:
+                        if piece.rect.collidepoint(event.pos):
+                            self.selected_piece = piece
+                            self.get_available_moves_for_piece(self.selected_piece)
+                else:
+                    self.selected_piece = None
+                    self.available_moves.clear()
 
         if event.type == pygame.MOUSEMOTION:
             if self.dragged_piece:
                 self.dragged_piece.rect.center = pygame.mouse.get_pos()
 
     def logic(self, event):
-        if not self.promotion_window.promotion:
-            self.dragged_piece_logic(event)
+        if not self.game_over:
+            if not self.promotion_window.promotion:
+                self.selected_piece_logic(event)
+            else:
+                self.promotion_window.logic(event)
+            for button in self.buttons:
+                button.logic(event)
         else:
-            self.promotion_window.logic(event)
-        for button in self.buttons:
-            button.logic(event)
+            pass
 
     def draw(self):
         self.display.fill((50, 50, 50))
@@ -169,13 +181,21 @@ class Game:
         self.new_piece(Knight(self, 0, 6, 'black'))
 
     def place_buttons(self):
-        self.buttons.append(UndoButton(self, constants.BOARD_POS_X - constants.TILE_SIZE,
+        self.buttons.append(UndoButton(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
                                        constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE // 2, constants.TILE_SIZE,
                                        constants.TILE_SIZE, 'gray30', 'gray27'))
 
     def draw_buttons(self):
         for button in self.buttons:
             button.draw()
+
+    def check_if_player_has_moves(self):
+        for piece in self.active_player.pieces:
+            self.get_available_moves_for_piece(piece)
+            if self.available_moves:
+                self.available_moves.clear()
+                return True
+        return False
 
     def change_turn(self):
         self.active_player, self.inactive_player = self.inactive_player, self.active_player
@@ -188,34 +208,38 @@ class Game:
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
     def draw_highlighted_tiles(self):
-        self.available_moves_surface.fill((0, 0, 0, 0))
+        self.highlighted_tiles_surface.fill((0, 0, 0, 0))
         if self.last_moves:
             last_move = self.last_moves[-1]
-            pygame.draw.rect(self.available_moves_surface, (0, 255, 0, 70), (tile_to_coords(
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 255, 0, 70), (tile_to_coords(
                 last_move.row, last_move.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
-            pygame.draw.rect(self.available_moves_surface, (0, 255, 0, 70), (tile_to_coords(
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 255, 0, 70), (tile_to_coords(
                 last_move.piece.row, last_move.piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         for tile in self.available_moves:
             row, col = tile[0], tile[1]
             x, y = tile_to_coords(row, col)
             if self.board[row][col] is None:
-                pygame.draw.circle(self.available_moves_surface, (0, 0, 255, 100),
+                pygame.draw.circle(self.highlighted_tiles_surface, (0, 0, 255, 100),
                                    (x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2),
                                    constants.TILE_SIZE // 8)
             else:
-                pygame.draw.rect(self.available_moves_surface, (0, 0, 255, 100),
+                pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100),
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
-        if self.dragged_piece:
-            pygame.draw.rect(self.available_moves_surface, (0, 0, 255, 100), (tile_to_coords(
+        if self.selected_piece:
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
+                self.selected_piece.row, self.selected_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+
+        elif self.dragged_piece:
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
                 self.dragged_piece.row, self.dragged_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         if self.active_player.in_check:
             x, y = tile_to_coords(self.active_player.king.row, self.active_player.king.col)
             x, y = x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2
-            pygame.draw.circle(self.available_moves_surface, (255, 0, 0, 200), (x, y), constants.TILE_SIZE // 2.2)
-        self.display.blit(self.available_moves_surface, (0, 0))
+            pygame.draw.circle(self.highlighted_tiles_surface, (255, 0, 0, 200), (x, y), constants.TILE_SIZE // 2.2)
+        self.display.blit(self.highlighted_tiles_surface, (0, 0))
 
     def new_piece(self, piece):
         self.board[piece.row][piece.col] = piece
@@ -243,7 +267,6 @@ class Game:
                 self.inactive_player.in_check = False
 
             if self.promotion_window.promotion:
-                self.change_turn()
                 self.promotion_window.promotion = False
 
             if last_move.has_moved is not None:

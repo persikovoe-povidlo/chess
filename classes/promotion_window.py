@@ -31,12 +31,14 @@ class PromotionWindow:
                                  self.Promotion(Bishop, 'bishop', 'black'), self.Promotion(Rook, 'rook', 'black')]
 
     def draw(self):
-        self.surface.fill((0, 0, 0, 150))
+        pygame.draw.rect(self.surface, (0, 0, 0, 150),
+                         (constants.BOARD_POS_X, constants.BOARD_POS_Y, constants.BOARD_WIDTH, constants.BOARD_WIDTH))
         if self.promotion:
+            for promotion in self.active_promotions:
+                pygame.draw.circle(self.surface, (200, 200, 200, 255), promotion.rect.center, constants.TILE_SIZE // 2)
             if self.highlighted_piece_rect:
-                pygame.draw.circle(self.surface, (0, 0, 255, 150), self.highlighted_piece_rect.center,
-                                   constants.TILE_SIZE // 1.8)
-                # pygame.draw.rect(self.surface, (0, 0, 255, 150), self.highlighted_piece_rect)
+                pygame.draw.circle(self.surface, (255, 102, 0, 255), self.highlighted_piece_rect.center,
+                                   constants.TILE_SIZE // 2)
             for promotion in self.active_promotions:
                 self.surface.blit(promotion.image, promotion.rect)
             self.game.display.blit(self.surface, (0, 0))
@@ -48,7 +50,6 @@ class PromotionWindow:
                     if piece.rect.collidepoint(event.pos):
                         self.game.new_piece(piece.class_name(self.game, self.row, self.col, piece.color))
                         self.promotion = False
-                        self.game.change_turn()
 
         if event.type == pygame.MOUSEMOTION:
             self.highlighted_piece_rect = None
