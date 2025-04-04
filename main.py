@@ -1,6 +1,6 @@
 import pygame
 
-from classes.scenes import MainMenuScene, GameScene
+from scenes.game_scene import GameScene
 import constants
 
 

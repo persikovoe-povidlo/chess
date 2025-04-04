@@ -16,8 +16,8 @@ class PromotionWindow:
                 (constants.TILE_SIZE, constants.TILE_SIZE))
             self.rect = self.image.get_rect()
 
-    def __init__(self, game):
-        self.game = game
+    def __init__(self, scene):
+        self.scene = scene
         self.promotion = False
         self.active_promotions = None
         self.row = 0
@@ -41,14 +41,14 @@ class PromotionWindow:
                                    constants.TILE_SIZE // 2)
             for promotion in self.active_promotions:
                 self.surface.blit(promotion.image, promotion.rect)
-            self.game.scene.display.blit(self.surface, (0, 0))
+            self.scene.app.screen.blit(self.surface, (0, 0))
 
     def logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 for piece in self.active_promotions:
                     if piece.rect.collidepoint(event.pos):
-                        self.game.new_piece(piece.class_name(self.game, self.row, self.col, piece.color))
+                        self.scene.new_piece(piece.class_name(self.scene, self.row, self.col, piece.color))
                         self.promotion = False
 
         if event.type == pygame.MOUSEMOTION:
@@ -62,7 +62,7 @@ class PromotionWindow:
         self.col = col
         self.highlighted_piece_rect = pygame.Rect(tile_to_coords(self.row, self.col), (constants.TILE_SIZE,
                                                                                        constants.TILE_SIZE))
-        if self.game.active_player.king.color == 'white':
+        if self.scene.active_player.king.color == 'white':
             self.active_promotions = self.white_promotions
         else:
             self.active_promotions = self.black_promotions

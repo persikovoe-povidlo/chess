@@ -4,15 +4,16 @@ from classes.buttons import UndoButton
 from classes.move import Move
 from classes.pieces import Pawn, Bishop, Rook, Queen, Knight, King
 from classes.player import Player
-from classes.promotion_window import PromotionWindow
+from floating_windows.promotion_window import PromotionWindow
 from functions import tile_to_coords, coords_to_tile
+from scenes.scene import Scene
 import constants
 
 
-class Game:
-    def __init__(self, scene):
+class GameScene(Scene):
+    def __init__(self, app):
+        super().__init__(app)
         self.game_over = False
-        self.scene = scene
         self.highlighted_tiles_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
                                                         pygame.SRCALPHA)
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
@@ -134,8 +135,9 @@ class Game:
                     self.selected_piece = None
                     self.available_moves.clear()
                 if self.dragged_piece:
+                    dragged_piece_col, dragged_piece_row = self.dragged_piece.col, self.dragged_piece.row
                     self.release_piece(self.dragged_piece)
-                    if coords_to_tile(event.pos[0], event.pos[1]) != (self.dragged_piece.col, self.dragged_piece.row):
+                    if coords_to_tile(event.pos[0], event.pos[1]) != (dragged_piece_col, dragged_piece_row):
                         self.selected_piece = None
                         self.available_moves.clear()
                     self.dragged_piece = None
@@ -143,6 +145,25 @@ class Game:
         if event.type == pygame.MOUSEMOTION:
             if self.dragged_piece:
                 self.dragged_piece.rect.center = pygame.mouse.get_pos()
+
+    def logic(self, event):
+        if not self.game_over:
+            if not self.promotion_window.promotion:
+                self.selected_piece_logic(event)
+            else:
+                self.promotion_window.logic(event)
+            for button in self.buttons:
+                button.logic(event)
+        else:
+            pass
+
+    def draw(self):
+        self.app.screen.fill((50, 50, 50))
+        self.draw_board()
+        self.draw_highlighted_tiles()
+        self.draw_buttons()
+        self.draw_pieces()
+        self.draw_promotion_window()
 
     def place_default_pieces(self):
         self.new_piece(self.active_player.king)
@@ -191,7 +212,7 @@ class Game:
     def draw_board(self):
         for col in range(constants.BOARD_SIZE):
             for row in range(constants.BOARD_SIZE):
-                pygame.draw.rect(self.scene.app.screen, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
+                pygame.draw.rect(self.app.screen, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
                         row % 2 != 0 and col % 2 != 0) else 'chocolate4',
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
@@ -227,7 +248,7 @@ class Game:
             x, y = tile_to_coords(self.active_player.king.row, self.active_player.king.col)
             x, y = x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2
             pygame.draw.circle(self.highlighted_tiles_surface, (255, 0, 0, 200), (x, y), constants.TILE_SIZE // 2.2)
-        self.scene.app.screen.blit(self.highlighted_tiles_surface, (0, 0))
+        self.app.screen.blit(self.highlighted_tiles_surface, (0, 0))
 
     def new_piece(self, piece):
         self.board[piece.row][piece.col] = piece

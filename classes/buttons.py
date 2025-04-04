@@ -13,7 +13,7 @@ class Button:
         self.surface.fill(color)
 
     def draw(self):
-        self.game.scene.app.screen.blit(self.surface, self.rect)
+        self.game.app.screen.blit(self.surface, self.rect)
 
     def press(self):
         self.pressed = True
