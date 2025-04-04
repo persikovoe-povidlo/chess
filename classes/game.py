@@ -10,9 +10,9 @@ import constants
 
 
 class Game:
-    def __init__(self, display):
+    def __init__(self, scene):
         self.game_over = False
-        self.display = display
+        self.scene = scene
         self.highlighted_tiles_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
                                                         pygame.SRCALPHA)
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
@@ -143,25 +143,6 @@ class Game:
             if self.dragged_piece:
                 self.dragged_piece.rect.center = pygame.mouse.get_pos()
 
-    def logic(self, event):
-        if not self.game_over:
-            if not self.promotion_window.promotion:
-                self.selected_piece_logic(event)
-            else:
-                self.promotion_window.logic(event)
-            for button in self.buttons:
-                button.logic(event)
-        else:
-            pass
-
-    def draw(self):
-        self.display.fill((50, 50, 50))
-        self.draw_board()
-        self.draw_highlighted_tiles()
-        self.draw_buttons()
-        self.draw_pieces()
-        self.draw_promotion_window()
-
     def place_default_pieces(self):
         self.new_piece(self.active_player.king)
         self.new_piece(self.inactive_player.king)
@@ -209,7 +190,7 @@ class Game:
     def draw_board(self):
         for col in range(constants.BOARD_SIZE):
             for row in range(constants.BOARD_SIZE):
-                pygame.draw.rect(self.display, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
+                pygame.draw.rect(self.scene.app.screen, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
                         row % 2 != 0 and col % 2 != 0) else 'chocolate4',
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
@@ -245,7 +226,7 @@ class Game:
             x, y = tile_to_coords(self.active_player.king.row, self.active_player.king.col)
             x, y = x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2
             pygame.draw.circle(self.highlighted_tiles_surface, (255, 0, 0, 200), (x, y), constants.TILE_SIZE // 2.2)
-        self.display.blit(self.highlighted_tiles_surface, (0, 0))
+        self.scene.app.screen.blit(self.highlighted_tiles_surface, (0, 0))
 
     def new_piece(self, piece):
         self.board[piece.row][piece.col] = piece

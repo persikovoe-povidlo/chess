@@ -41,7 +41,7 @@ class PromotionWindow:
                                    constants.TILE_SIZE // 2)
             for promotion in self.active_promotions:
                 self.surface.blit(promotion.image, promotion.rect)
-            self.game.display.blit(self.surface, (0, 0))
+            self.game.scene.display.blit(self.surface, (0, 0))
 
     def logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:

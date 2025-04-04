@@ -14,7 +14,7 @@ class Piece:
         self.rect = self.surface.get_rect().move(tile_to_coords(row, col))
 
     def draw(self):
-        self.game.display.blit(self.surface, self.rect)
+        self.game.scene.app.screen.blit(self.surface, self.rect)
 
     def move(self, row, col):
         if self.game.board[row][col]:
