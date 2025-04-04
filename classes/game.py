@@ -134,9 +134,10 @@ class Game:
                     self.selected_piece = None
                     self.available_moves.clear()
                 if self.dragged_piece:
+                    self.release_piece(self.dragged_piece)
                     if coords_to_tile(event.pos[0], event.pos[1]) != (self.dragged_piece.col, self.dragged_piece.row):
                         self.selected_piece = None
-                    self.release_piece(self.dragged_piece)
+                        self.available_moves.clear()
                     self.dragged_piece = None
 
         if event.type == pygame.MOUSEMOTION:
