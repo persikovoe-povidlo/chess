@@ -2,6 +2,7 @@ import pygame
 
 from scenes.game_scene import GameScene
 import constants
+from scenes.main_menu_scene import MainMenuScene
 
 
 class Application:
@@ -11,7 +12,7 @@ class Application:
         pygame.display.set_caption('Chess')
         self.clock = pygame.time.Clock()
         self.running = True
-        self.scene = GameScene(self)
+        self.scene = MainMenuScene(self)
 
     def start(self):
         while self.running:
@@ -28,8 +29,16 @@ class Application:
         else:
             pygame.quit()
 
-    def switch_scene(self, scene):
-        self.scene = scene(self)
+    def change_scene(self, scene, **kwargs):
+        match scene:
+            case 'game':
+                self.scene = GameScene(self)
+            case 'main_menu':
+                self.scene = MainMenuScene(self)
+
+    '''def force_redraw(self):
+        self.scene.draw()
+        pygame.display.flip()'''
 
 
 def main():

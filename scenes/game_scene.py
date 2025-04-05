@@ -1,10 +1,10 @@
 import pygame
 
-from classes.buttons import UndoButton
+from classes.button import Button
 from classes.move import Move
 from classes.pieces import Pawn, Bishop, Rook, Queen, Knight, King
 from classes.player import Player
-from floating_windows.promotion_window import PromotionWindow
+from classes.promotion_overlay import PromotionOverlay
 from functions import tile_to_coords, coords_to_tile
 from scenes.scene import Scene
 import constants
@@ -17,11 +17,11 @@ class GameScene(Scene):
         self.highlighted_tiles_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
                                                         pygame.SRCALPHA)
         self.board = [[None for _ in range(constants.BOARD_SIZE)] for _ in range(constants.BOARD_SIZE)]
-        self.promotion_window = PromotionWindow(self)
+        self.promotion_overlay = None
         self.dragged_piece = None
         self.selected_piece = None
         self.last_moves = []
-        self.buttons = []
+        self.buttons = {}
         self.available_moves = []
 
         self.active_player = Player(King(self, 7, 4, 'white'))
@@ -29,9 +29,6 @@ class GameScene(Scene):
 
         self.place_default_pieces()
         self.place_buttons()
-
-    def draw_promotion_window(self):
-        self.promotion_window.draw()
 
     def get_available_moves_for_piece(self, piece):
         for row in range(constants.BOARD_SIZE):
@@ -92,10 +89,9 @@ class GameScene(Scene):
             self.available_moves.clear()
 
             if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
-                self.promotion_window.promotion = True
+                self.promotion_overlay = PromotionOverlay(self, row, col, piece.direction)
                 self.active_player.pieces.remove(piece)
                 self.board[row][col] = None
-                self.promotion_window.place(row, col, piece.direction)
 
             self.inactive_player.in_check = False
             for piece in self.active_player.pieces:
@@ -104,7 +100,8 @@ class GameScene(Scene):
 
             self.change_turn()
             if not self.check_if_player_has_moves():
-                self.game_over = True
+                self.change_to_game_over_state()
+
         else:  # place piece back if move is not available
             piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
 
@@ -146,16 +143,26 @@ class GameScene(Scene):
             if self.dragged_piece:
                 self.dragged_piece.rect.center = pygame.mouse.get_pos()
 
+    def change_to_game_over_state(self):
+        self.game_over = True
+        self.buttons.pop('undo')
+        self.buttons['to_menu'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
+                                          constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE - constants.TILE_SIZE // 2,
+                                          constants.TILE_SIZE, constants.TILE_SIZE, 'blue', 'blue3',
+                                          action=lambda: self.app.change_scene('main_menu')))
+        self.buttons['replay'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
+                                         constants.SCREEN_HEIGHT // 2 + constants.TILE_SIZE - constants.TILE_SIZE // 2,
+                                         constants.TILE_SIZE, constants.TILE_SIZE, 'green', 'green3',
+                                         action=lambda: self.app.change_scene('game')))
+
     def logic(self, event):
         if not self.game_over:
-            if not self.promotion_window.promotion:
+            if self.promotion_overlay is None:
                 self.selected_piece_logic(event)
             else:
-                self.promotion_window.logic(event)
-            for button in self.buttons:
-                button.logic(event)
-        else:
-            pass
+                self.promotion_overlay.logic(event)
+        for button in self.buttons.values():
+            button.logic(event)
 
     def draw(self):
         self.app.screen.fill((50, 50, 50))
@@ -163,7 +170,7 @@ class GameScene(Scene):
         self.draw_highlighted_tiles()
         self.draw_buttons()
         self.draw_pieces()
-        self.draw_promotion_window()
+        self.draw_promotion_overlay()
 
     def place_default_pieces(self):
         self.new_piece(self.active_player.king)
@@ -190,12 +197,13 @@ class GameScene(Scene):
         self.new_piece(Knight(self, 0, 6, 'black'))
 
     def place_buttons(self):
-        self.buttons.append(UndoButton(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
+        self.buttons['undo'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
                                        constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE // 2, constants.TILE_SIZE,
-                                       constants.TILE_SIZE, 'gray30', 'gray27'))
+                                       constants.TILE_SIZE, 'gray30', 'gray27', image='assets/undo.png',
+                                       action=self.undo))
 
     def draw_buttons(self):
-        for button in self.buttons:
+        for button in self.buttons.values():
             button.draw()
 
     def check_if_player_has_moves(self):
@@ -215,6 +223,10 @@ class GameScene(Scene):
                 pygame.draw.rect(self.app.screen, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
                         row % 2 != 0 and col % 2 != 0) else 'chocolate4',
                                  (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+
+    def draw_promotion_overlay(self):
+        if self.promotion_overlay:
+            self.promotion_overlay.draw()
 
     def draw_highlighted_tiles(self):
         self.highlighted_tiles_surface.fill((0, 0, 0, 0))
@@ -275,8 +287,8 @@ class GameScene(Scene):
             else:
                 self.inactive_player.in_check = False
 
-            if self.promotion_window.promotion:
-                self.promotion_window.promotion = False
+            if self.promotion_overlay:
+                self.promotion_overlay = None
 
             if last_move.has_moved is not None:
                 last_move.piece.has_moved = last_move.has_moved
