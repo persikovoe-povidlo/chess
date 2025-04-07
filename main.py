@@ -1,4 +1,6 @@
 import pygame
+import socket
+from threading import Thread
 
 from scenes.game_scene import GameScene
 import constants
@@ -13,6 +15,17 @@ class Application:
         self.clock = pygame.time.Clock()
         self.running = True
         self.scene = MainMenuScene(self)
+        self.socket = socket.socket()
+        self.socket.connect(('127.0.0.1', 25565))
+        Thread(target=self.listen).start()
+
+    def listen(self):
+        while self.running:
+            try:
+                self.scene.listen()
+            except:
+                self.running = False
+                print('connection to server lost')
 
     def start(self):
         while self.running:
@@ -27,18 +40,16 @@ class Application:
 
             self.clock.tick(60)
         else:
+            self.socket.send('disconnect'.encode())
+            self.socket.close()
             pygame.quit()
 
-    def change_scene(self, scene, **kwargs):
+    def change_scene(self, scene):
         match scene:
             case 'game':
                 self.scene = GameScene(self)
             case 'main_menu':
                 self.scene = MainMenuScene(self)
-
-    '''def force_redraw(self):
-        self.scene.draw()
-        pygame.display.flip()'''
 
 
 def main():

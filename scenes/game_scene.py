@@ -56,54 +56,56 @@ class GameScene(Scene):
     def release_piece(self, piece):
         col, row = coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         if (row, col) in self.available_moves:
-            if (type(piece) is Pawn and  # check for en' passant
-                    abs(piece.col - col) == 1 and self.board[row][col] is None):
-
-                self.last_moves.append(Move(piece.row, piece.col, self.board[row - piece.direction][col], piece,
-                                            self.active_player.in_check))
-                self.inactive_player.pieces.remove(self.board[row - piece.direction][col])
-                self.board[row - piece.direction][col] = None
-
-            elif type(piece) is King and abs(piece.col - col) == 2:  # check for castle
-                if piece.col - col == 2:
-                    self.last_moves.append(Move(piece.row, piece.col, self.board[row][piece.col - 4], piece,
-                                                self.active_player.in_check))
-                    self.board[piece.row][piece.col - 4].move(row, col + 1)
-
-                if piece.col - col == -2:
-                    self.last_moves.append(Move(piece.row, piece.col, self.board[row][piece.col + 3], piece,
-                                                self.active_player.in_check))
-                    self.board[piece.row][piece.col + 3].move(row, col - 1)
-
-            else:  # ordinary move
-                if type(piece) is King or type(piece) is Rook:
-                    self.last_moves.append(
-                        Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check,
-                             piece.has_moved))
-                    piece.has_moved = True
-                else:
-                    self.last_moves.append(
-                        Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check))
-
-            piece.move(row, col)
-            self.available_moves.clear()
-
-            if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
-                self.promotion_overlay = PromotionOverlay(self, row, col, piece.direction)
-                self.active_player.pieces.remove(piece)
-                self.board[row][col] = None
-
-            self.inactive_player.in_check = False
-            for piece in self.active_player.pieces:
-                if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
-                    self.inactive_player.in_check = True
-
-            self.change_turn()
-            if not self.check_if_player_has_moves():
-                self.change_to_game_over_state()
-
+            self.app.socket.send(('m' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
+            #self.place_piece(piece, row, col)
         else:  # place piece back if move is not available
             piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
+
+    def place_piece(self, piece, row, col):
+        if (type(piece) is Pawn and  # check for en' passant
+                abs(piece.col - col) == 1 and self.board[row][col] is None):
+
+            self.last_moves.append(Move(piece.row, piece.col, self.board[row - piece.direction][col], piece,
+                                        self.active_player.in_check))
+            self.inactive_player.pieces.remove(self.board[row - piece.direction][col])
+            self.board[row - piece.direction][col] = None
+
+        elif type(piece) is King and abs(piece.col - col) == 2:  # check for castle
+            if piece.col - col == 2:
+                self.last_moves.append(Move(piece.row, piece.col, self.board[row][piece.col - 4], piece,
+                                            self.active_player.in_check))
+                self.board[piece.row][piece.col - 4].move(row, col + 1)
+
+            if piece.col - col == -2:
+                self.last_moves.append(Move(piece.row, piece.col, self.board[row][piece.col + 3], piece,
+                                            self.active_player.in_check))
+                self.board[piece.row][piece.col + 3].move(row, col - 1)
+
+        else:  # ordinary move
+            if type(piece) is King or type(piece) is Rook:
+                self.last_moves.append(
+                    Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check,
+                         piece.has_moved))
+                piece.has_moved = True
+            else:
+                self.last_moves.append(
+                    Move(piece.row, piece.col, self.board[row][col], piece, self.active_player.in_check))
+        piece.move(row, col)
+        self.available_moves.clear()
+
+        if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
+            self.promotion_overlay = PromotionOverlay(self, row, col, piece.direction)
+            self.active_player.pieces.remove(piece)
+            self.board[row][col] = None
+
+        self.inactive_player.in_check = False
+        for piece in self.active_player.pieces:
+            if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
+                self.inactive_player.in_check = True
+
+        self.change_turn()
+        if not self.check_if_player_has_moves():
+            self.change_to_game_over_state()
 
     def selected_piece_logic(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -154,6 +156,16 @@ class GameScene(Scene):
                                          constants.SCREEN_HEIGHT // 2 + constants.TILE_SIZE - constants.TILE_SIZE // 2,
                                          constants.TILE_SIZE, constants.TILE_SIZE, 'green', 'green3',
                                          action=lambda: self.app.change_scene('game')))
+
+    def listen(self):
+        data = self.app.socket.recv(1024).decode()
+        if data == 'start_game':
+            self.app.change_scene('game')
+        elif data == 'disconnect':
+            self.app.running = False
+        elif data[0] == 'm':
+            row1, col1, row2, col2 = map(int, data[1:5])
+            self.place_piece(self.board[row1][col1], row2, col2)
 
     def logic(self, event):
         if not self.game_over:

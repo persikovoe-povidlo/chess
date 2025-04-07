@@ -4,3 +4,9 @@ class Scene:
 
     def logic(self, event):
         pass
+
+    def draw(self):
+        pass
+
+    def listen(self):
+        pass

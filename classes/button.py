@@ -2,7 +2,7 @@ import pygame
 
 
 class Button:
-    def __init__(self, scene, x, y, w, h, color, color_pressed, **kwargs):
+    def __init__(self, scene, x, y, w, h, color, color_pressed, image=None, action=lambda: None):
         self.scene = scene
         self.rect = pygame.Rect((x, y), (w, h))
         self.color = color
@@ -10,15 +10,11 @@ class Button:
         self.pressed = False
         self.surface = pygame.Surface((w, h))
         self.surface.fill(color)
-        if 'image' in kwargs:
-            self.image = pygame.transform.scale(pygame.image.load(kwargs['image']).convert_alpha(), (w, h))
+        self.image = image
+        self.action = action
+        if self.image:
+            self.image = pygame.transform.scale(pygame.image.load(image).convert_alpha(), (w, h))
             self.surface.blit(self.image, (0, 0))
-        else:
-            self.image = None
-        if 'action' in kwargs:
-            self.action = kwargs['action']
-        else:
-            self.action = lambda: None
 
     def draw(self):
         self.scene.app.screen.blit(self.surface, self.rect)
