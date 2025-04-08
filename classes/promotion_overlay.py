@@ -55,8 +55,10 @@ class PromotionOverlay:
             if event.button == 1:
                 for piece in self.active_promotions:
                     if piece.rect.collidepoint(event.pos):
-                        self.scene.new_piece(piece.class_name(self.scene, self.row, self.col, piece.color))
+                        self.scene.app.socket.send(
+                            ('n' + piece.piece[0] + str(self.row) + str(self.col) + piece.color).encode())
                         self.scene.promotion_overlay = None
+
 
         if event.type == pygame.MOUSEMOTION:
             self.highlighted_piece_rect = None

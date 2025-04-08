@@ -44,12 +44,11 @@ class Application:
             self.socket.close()
             pygame.quit()
 
-    def change_scene(self, scene):
-        match scene:
-            case 'game':
-                self.scene = GameScene(self)
-            case 'main_menu':
-                self.scene = MainMenuScene(self)
+    def change_scene(self, scene, **kwargs):
+        if scene == 'game':
+            self.scene = GameScene(self)
+        elif scene == 'main_menu':
+            self.scene = MainMenuScene(self)
 
 
 def main():

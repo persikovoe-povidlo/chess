@@ -50,9 +50,13 @@ class Server:
 
                 elif data == 'start_game':
                     if self.player_w and self.player_b:
-                        self.send_to_players('start_game')
+                        self.player_w.send('start w'.encode())
+                        self.player_b.send('start b'.encode())
 
                 elif data[0] == 'm':
+                    self.send_to_players(data)
+
+                elif data[0] == 'n':
                     self.send_to_players(data)
         except:
             print('connection to client lost')

@@ -20,6 +20,7 @@ class GameScene(Scene):
         self.promotion_overlay = None
         self.dragged_piece = None
         self.selected_piece = None
+        self.can_move = False
         self.last_moves = []
         self.buttons = {}
         self.available_moves = []
@@ -57,7 +58,6 @@ class GameScene(Scene):
         col, row = coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         if (row, col) in self.available_moves:
             self.app.socket.send(('m' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
-            #self.place_piece(piece, row, col)
         else:  # place piece back if move is not available
             piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
 
@@ -94,16 +94,18 @@ class GameScene(Scene):
         self.available_moves.clear()
 
         if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
-            self.promotion_overlay = PromotionOverlay(self, row, col, piece.direction)
+            if self.can_move:
+                self.promotion_overlay = PromotionOverlay(self, row, col, piece.direction)
             self.active_player.pieces.remove(piece)
             self.board[row][col] = None
+        else:
+            self.change_turn()
 
-        self.inactive_player.in_check = False
-        for piece in self.active_player.pieces:
-            if piece.can_see(self.inactive_player.king.row, self.inactive_player.king.col):
-                self.inactive_player.in_check = True
+        self.active_player.in_check = False
+        for piece in self.inactive_player.pieces:
+            if piece.can_see(self.active_player.king.row, self.active_player.king.col):
+                self.active_player.in_check = True
 
-        self.change_turn()
         if not self.check_if_player_has_moves():
             self.change_to_game_over_state()
 
@@ -159,16 +161,35 @@ class GameScene(Scene):
 
     def listen(self):
         data = self.app.socket.recv(1024).decode()
-        if data == 'start_game':
+
+        if data[:5] == 'start':
             self.app.change_scene('game')
+            if data[6] == 'w':
+                self.can_move = True
+            elif data[6] == 'b':
+                self.can_move = False
+
         elif data == 'disconnect':
             self.app.running = False
+
         elif data[0] == 'm':
             row1, col1, row2, col2 = map(int, data[1:5])
             self.place_piece(self.board[row1][col1], row2, col2)
 
+        elif data[0] == 'n':
+            p = data[1]
+            if p == 'q':
+                self.new_piece(Queen(self, int(data[2]), int(data[3]), data[4:9]))
+            if p == 'k':
+                self.new_piece(Knight(self, int(data[2]), int(data[3]), data[4:9]))
+            if p == 'b':
+                self.new_piece(Bishop(self, int(data[2]), int(data[3]), data[4:9]))
+            if p == 'r':
+                self.new_piece(Rook(self, int(data[2]), int(data[3]), data[4:9]))
+            self.change_turn()
+
     def logic(self, event):
-        if not self.game_over:
+        if not self.game_over and self.can_move:
             if self.promotion_overlay is None:
                 self.selected_piece_logic(event)
             else:
@@ -182,7 +203,8 @@ class GameScene(Scene):
         self.draw_highlighted_tiles()
         self.draw_buttons()
         self.draw_pieces()
-        self.draw_promotion_overlay()
+        if self.can_move:
+            self.draw_promotion_overlay()
 
     def place_default_pieces(self):
         self.new_piece(self.active_player.king)
@@ -227,6 +249,7 @@ class GameScene(Scene):
         return False
 
     def change_turn(self):
+        self.can_move = not self.can_move
         self.active_player, self.inactive_player = self.inactive_player, self.active_player
 
     def draw_board(self):
