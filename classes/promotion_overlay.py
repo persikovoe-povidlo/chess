@@ -15,7 +15,8 @@ class PromotionOverlay:
                 (constants.TILE_SIZE, constants.TILE_SIZE))
             self.rect = self.image.get_rect()
 
-    def __init__(self, scene, row, col, direction):
+    def __init__(self, scene, row, col, piece):
+        self.piece = piece
         self.scene = scene
         self.row = row
         self.col = col
@@ -32,7 +33,7 @@ class PromotionOverlay:
 
         shift = 0
         for promotion in self.active_promotions:
-            promotion.rect.topleft = self.scene.tile_to_coords(row + shift * direction * -1, col)
+            promotion.rect.topleft = self.scene.tile_to_coords(row + shift * piece.direction * -1, col)
             shift += 1
 
         self.surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
@@ -55,8 +56,13 @@ class PromotionOverlay:
                 for piece in self.active_promotions:
                     if piece.rect.collidepoint(event.pos):
                         self.scene.app.socket.send(
+                            ('m' + str(self.piece.row) + str(self.piece.col) + str(self.row) + str(self.col)).encode())
+                        self.scene.app.socket.send(
                             ('n' + piece.piece[0] + str(self.row) + str(self.col) + piece.color).encode())
                         self.scene.promotion_overlay = None
+                        return
+                self.piece.rect.topleft = (self.scene.tile_to_coords(self.piece.row, self.piece.col))
+                self.scene.promotion_overlay = None
 
         if event.type == pygame.MOUSEMOTION:
             self.highlighted_piece_rect = None

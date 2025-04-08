@@ -69,7 +69,12 @@ class GameScene(Scene):
     def release_piece(self, piece):
         col, row = self.coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         if (row, col) in self.available_moves:
-            self.app.socket.send(('m' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
+            if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
+                if self.can_move:
+                    piece.rect.topleft = (self.tile_to_coords(row, col))
+                    self.promotion_overlay = PromotionOverlay(self, row, col, piece)
+            else:
+                self.app.socket.send(('m' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
         else:  # place piece back if move is not available
             piece.rect.topleft = (self.tile_to_coords(piece.row, piece.col))
 
@@ -105,13 +110,7 @@ class GameScene(Scene):
         piece.move(row, col)
         self.available_moves.clear()
 
-        if type(piece) is Pawn and row % (constants.BOARD_SIZE - 1) == 0:  # check for promotion
-            if self.can_move:
-                self.promotion_overlay = PromotionOverlay(self, row, col, piece.direction)
-            self.active_player.pieces.remove(piece)
-            self.board[row][col] = None
-        else:
-            self.change_turn()
+        self.change_turn()
 
         self.active_player.in_check = False
         for piece in self.inactive_player.pieces:
@@ -198,7 +197,6 @@ class GameScene(Scene):
                 self.new_piece(Bishop(self, int(data[2]), int(data[3]), data[4:9]))
             if p == 'r':
                 self.new_piece(Rook(self, int(data[2]), int(data[3]), data[4:9]))
-            self.change_turn()
 
     def logic(self, event):
         if not self.game_over and self.can_move:
@@ -310,6 +308,11 @@ class GameScene(Scene):
         self.app.screen.blit(self.highlighted_tiles_surface, (0, 0))
 
     def new_piece(self, piece):
+        if self.board[piece.row][piece.col]:
+            if self.board[piece.row][piece.col] in self.active_player.pieces:
+                self.active_player.pieces.remove(self.board[piece.row][piece.col])
+            else:
+                self.inactive_player.pieces.remove(self.board[piece.row][piece.col])
         self.board[piece.row][piece.col] = piece
         if piece.color == self.active_player.king.color:
             self.active_player.pieces.append(piece)
