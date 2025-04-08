@@ -12,11 +12,11 @@ class MainMenuScene(Scene):
     def listen(self):
         data = self.app.socket.recv(1024).decode()
         if data[:5] == 'start':
-            self.app.change_scene('game')
             if data[6] == 'w':
-                self.app.scene.can_move = True
+                self.app.change_scene('game', color='white')
             elif data[6] == 'b':
-                self.app.scene.can_move = False
+                self.app.change_scene('game', color='black')
+
         if data == 'disconnect':
             self.app.running = False
 

@@ -1,7 +1,6 @@
 import pygame
 
 from classes.pieces import Queen, Rook, Bishop, Knight
-from functions import tile_to_coords
 import constants
 
 
@@ -20,8 +19,8 @@ class PromotionOverlay:
         self.scene = scene
         self.row = row
         self.col = col
-        self.highlighted_piece_rect = pygame.Rect(tile_to_coords(self.row, self.col), (constants.TILE_SIZE,
-                                                                                       constants.TILE_SIZE))
+        self.highlighted_piece_rect = pygame.Rect(self.scene.tile_to_coords(self.row, self.col),
+                                                  (constants.TILE_SIZE, constants.TILE_SIZE))
         self.white_promotions = [self.Promotion(Queen, 'queen', 'white'), self.Promotion(Knight, 'knight', 'white'),
                                  self.Promotion(Bishop, 'bishop', 'white'), self.Promotion(Rook, 'rook', 'white')]
         self.black_promotions = [self.Promotion(Queen, 'queen', 'black'), self.Promotion(Knight, 'knight', 'black'),
@@ -33,7 +32,7 @@ class PromotionOverlay:
 
         shift = 0
         for promotion in self.active_promotions:
-            promotion.rect.topleft = tile_to_coords(row + shift * direction * -1, col)
+            promotion.rect.topleft = self.scene.tile_to_coords(row + shift * direction * -1, col)
             shift += 1
 
         self.surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.SRCALPHA)
@@ -58,7 +57,6 @@ class PromotionOverlay:
                         self.scene.app.socket.send(
                             ('n' + piece.piece[0] + str(self.row) + str(self.col) + piece.color).encode())
                         self.scene.promotion_overlay = None
-
 
         if event.type == pygame.MOUSEMOTION:
             self.highlighted_piece_rect = None

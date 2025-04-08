@@ -46,7 +46,7 @@ class Application:
 
     def change_scene(self, scene, **kwargs):
         if scene == 'game':
-            self.scene = GameScene(self)
+            self.scene = GameScene(self, kwargs['color'])
         elif scene == 'main_menu':
             self.scene = MainMenuScene(self)
 

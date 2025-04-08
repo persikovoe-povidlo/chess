@@ -5,13 +5,12 @@ from classes.move import Move
 from classes.pieces import Pawn, Bishop, Rook, Queen, Knight, King
 from classes.player import Player
 from classes.promotion_overlay import PromotionOverlay
-from functions import tile_to_coords, coords_to_tile
 from scenes.scene import Scene
 import constants
 
 
 class GameScene(Scene):
-    def __init__(self, app):
+    def __init__(self, app, color):
         super().__init__(app)
         self.game_over = False
         self.highlighted_tiles_surface = pygame.Surface((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT),
@@ -20,7 +19,20 @@ class GameScene(Scene):
         self.promotion_overlay = None
         self.dragged_piece = None
         self.selected_piece = None
-        self.can_move = False
+        if color == 'white':
+            self.can_move = True
+            self.tile_to_coords = lambda row, col: (constants.BOARD_POS_X + col * constants.TILE_SIZE,
+                                                    constants.BOARD_POS_Y + row * constants.TILE_SIZE)
+            self.coords_to_tile = lambda x, y: (
+                (x - constants.BOARD_POS_X) // constants.TILE_SIZE, (y - constants.BOARD_POS_Y) // constants.TILE_SIZE)
+        else:
+            self.can_move = False
+            self.tile_to_coords = lambda row, col: (
+                constants.BOARD_POS_X + (constants.BOARD_SIZE - 1 - col) * constants.TILE_SIZE,
+                constants.BOARD_POS_Y + (constants.BOARD_SIZE - 1 - row) * constants.TILE_SIZE)
+            self.coords_to_tile = lambda x, y: (
+                constants.BOARD_SIZE - 1 - (x - constants.BOARD_POS_X) // constants.TILE_SIZE,
+                constants.BOARD_SIZE - 1 - (y - constants.BOARD_POS_Y) // constants.TILE_SIZE)
         self.last_moves = []
         self.buttons = {}
         self.available_moves = []
@@ -55,11 +67,11 @@ class GameScene(Scene):
                     self.board[row][col] = saved_piece
 
     def release_piece(self, piece):
-        col, row = coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+        col, row = self.coords_to_tile(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         if (row, col) in self.available_moves:
             self.app.socket.send(('m' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
         else:  # place piece back if move is not available
-            piece.rect.topleft = (tile_to_coords(piece.row, piece.col))
+            piece.rect.topleft = (self.tile_to_coords(piece.row, piece.col))
 
     def place_piece(self, piece, row, col):
         if (type(piece) is Pawn and  # check for en' passant
@@ -129,7 +141,8 @@ class GameScene(Scene):
                 if self.selected_piece is None and self.dragged_piece:
                     self.selected_piece = self.dragged_piece
                 elif self.dragged_piece:
-                    if coords_to_tile(event.pos[0], event.pos[1]) == (self.dragged_piece.col, self.dragged_piece.row):
+                    if self.coords_to_tile(event.pos[0], event.pos[1]) == (
+                            self.dragged_piece.col, self.dragged_piece.row):
                         self.available_moves.clear()
                     self.selected_piece = None
                 else:
@@ -138,7 +151,7 @@ class GameScene(Scene):
                 if self.dragged_piece:
                     dragged_piece_col, dragged_piece_row = self.dragged_piece.col, self.dragged_piece.row
                     self.release_piece(self.dragged_piece)
-                    if coords_to_tile(event.pos[0], event.pos[1]) != (dragged_piece_col, dragged_piece_row):
+                    if self.coords_to_tile(event.pos[0], event.pos[1]) != (dragged_piece_col, dragged_piece_row):
                         self.selected_piece = None
                         self.available_moves.clear()
                     self.dragged_piece = None
@@ -163,11 +176,10 @@ class GameScene(Scene):
         data = self.app.socket.recv(1024).decode()
 
         if data[:5] == 'start':
-            self.app.change_scene('game')
             if data[6] == 'w':
-                self.can_move = True
+                self.app.change_scene('game', color='white')
             elif data[6] == 'b':
-                self.can_move = False
+                self.app.change_scene('game', color='black')
 
         elif data == 'disconnect':
             self.app.running = False
@@ -257,7 +269,7 @@ class GameScene(Scene):
             for row in range(constants.BOARD_SIZE):
                 pygame.draw.rect(self.app.screen, 'burlywood1' if (row % 2 == 0 and col % 2 == 0) or (
                         row % 2 != 0 and col % 2 != 0) else 'chocolate4',
-                                 (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+                                 (self.tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
     def draw_promotion_overlay(self):
         if self.promotion_overlay:
@@ -267,32 +279,32 @@ class GameScene(Scene):
         self.highlighted_tiles_surface.fill((0, 0, 0, 0))
         if self.last_moves:
             last_move = self.last_moves[-1]
-            pygame.draw.rect(self.highlighted_tiles_surface, (0, 255, 0, 70), (tile_to_coords(
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 255, 0, 70), (self.tile_to_coords(
                 last_move.row, last_move.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
-            pygame.draw.rect(self.highlighted_tiles_surface, (0, 255, 0, 70), (tile_to_coords(
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 255, 0, 70), (self.tile_to_coords(
                 last_move.piece.row, last_move.piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         for tile in self.available_moves:
             row, col = tile[0], tile[1]
-            x, y = tile_to_coords(row, col)
+            x, y = self.tile_to_coords(row, col)
             if self.board[row][col] is None:
                 pygame.draw.circle(self.highlighted_tiles_surface, (0, 0, 255, 100),
                                    (x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2),
                                    constants.TILE_SIZE // 8)
             else:
                 pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100),
-                                 (tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
+                                 (self.tile_to_coords(row, col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         if self.dragged_piece:
-            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (self.tile_to_coords(
                 self.dragged_piece.row, self.dragged_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         elif self.selected_piece:
-            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (tile_to_coords(
+            pygame.draw.rect(self.highlighted_tiles_surface, (0, 0, 255, 100), (self.tile_to_coords(
                 self.selected_piece.row, self.selected_piece.col), (constants.TILE_SIZE, constants.TILE_SIZE)))
 
         if self.active_player.in_check:
-            x, y = tile_to_coords(self.active_player.king.row, self.active_player.king.col)
+            x, y = self.tile_to_coords(self.active_player.king.row, self.active_player.king.col)
             x, y = x + constants.TILE_SIZE // 2, y + constants.TILE_SIZE // 2
             pygame.draw.circle(self.highlighted_tiles_surface, (255, 0, 0, 200), (x, y), constants.TILE_SIZE // 2.2)
         self.app.screen.blit(self.highlighted_tiles_surface, (0, 0))
