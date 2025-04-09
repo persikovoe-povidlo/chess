@@ -74,7 +74,7 @@ class GameScene(Scene):
                     piece.rect.topleft = (self.tile_to_coords(row, col))
                     self.promotion_overlay = PromotionOverlay(self, row, col, piece)
             else:
-                self.app.socket.send(('m' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
+                self.app.socket.send(('move' + str(piece.row) + str(piece.col) + str(row) + str(col)).encode())
         else:  # place piece back if move is not available
             piece.rect.topleft = (self.tile_to_coords(piece.row, piece.col))
 
@@ -165,7 +165,7 @@ class GameScene(Scene):
         self.buttons['to_menu'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
                                           constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE - constants.TILE_SIZE // 2,
                                           constants.TILE_SIZE, constants.TILE_SIZE, 'blue', 'blue3',
-                                          action=lambda: self.app.change_scene('main_menu')))
+                                          action=lambda: self.app.socket.send('main_menu'.encode())))
         self.buttons['replay'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
                                          constants.SCREEN_HEIGHT // 2 + constants.TILE_SIZE - constants.TILE_SIZE // 2,
                                          constants.TILE_SIZE, constants.TILE_SIZE, 'green', 'green3',
@@ -178,8 +178,8 @@ class GameScene(Scene):
             elif data[6] == 'b':
                 self.app.change_scene('game', color='black')
 
-        elif data[0] == 'm':
-            row1, col1, row2, col2 = map(int, data[1:5])
+        elif data[:4] == 'move':
+            row1, col1, row2, col2 = map(int, data[4:])
             self.place_piece(self.board[row1][col1], row2, col2)
 
         elif data[0] == 'n':
@@ -195,6 +195,9 @@ class GameScene(Scene):
 
         elif data == 'undo':
             self.undo()
+
+        elif data == 'main_menu':
+            self.app.change_scene('main_menu')
 
     def logic(self, event):
         if not self.game_over and self.can_move:

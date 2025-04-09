@@ -56,7 +56,7 @@ class PromotionOverlay:
                 for piece in self.active_promotions:
                     if piece.rect.collidepoint(event.pos):
                         self.scene.app.socket.send(
-                            ('m' + str(self.piece.row) + str(self.piece.col) + str(self.row) + str(self.col)).encode())
+                            ('move' + str(self.piece.row) + str(self.piece.col) + str(self.row) + str(self.col)).encode())
                         self.scene.app.socket.send(
                             ('n' + piece.piece[0] + str(self.row) + str(self.col) + piece.color).encode())
                         self.scene.promotion_overlay = None

@@ -64,13 +64,16 @@ class Server:
                         self.player1.send('start w'.encode())
                         self.player2.send('start b'.encode())
 
-                elif data[0] == 'm':
+                elif data[:4] == 'move':
                     self.send_to_players(data)
 
                 elif data[0] == 'n':
                     self.send_to_players(data)
 
                 elif data == 'undo':
+                    self.send_to_players(data)
+
+                elif data == 'main_menu':
                     self.send_to_players(data)
         except:
             connection.close()
