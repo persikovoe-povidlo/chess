@@ -22,7 +22,10 @@ class Application:
     def listen(self):
         while self.running:
             try:
-                self.scene.listen()
+                data = self.socket.recv(10).decode()
+                if data == 'disconnect':
+                    self.running = False
+                self.scene.listen(data)
             except:
                 self.running = False
                 print('connection to server lost')

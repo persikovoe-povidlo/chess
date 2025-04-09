@@ -9,25 +9,18 @@ class MainMenuScene(Scene):
         self.buttons = {}
         self.place_buttons()
 
-    def listen(self):
-        data = self.app.socket.recv(1024).decode()
+    def listen(self, data):
         if data[:5] == 'start':
             if data[6] == 'w':
                 self.app.change_scene('game', color='white')
             elif data[6] == 'b':
                 self.app.change_scene('game', color='black')
 
-        if data == 'disconnect':
-            self.app.running = False
-
-    def start_game(self):
-        self.app.socket.send('start_game'.encode())
-
     def place_buttons(self):
         self.buttons['new_game'] = (Button(self, constants.SCREEN_WIDTH // 2 - constants.TILE_SIZE,
                                            constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE // 2,
                                            constants.TILE_SIZE * 2, constants.TILE_SIZE, 'blue', 'blue3',
-                                           action=self.start_game))
+                                           action=lambda: self.app.socket.send('start_game'.encode())))
 
     def logic(self, event):
         for button in self.buttons.values():

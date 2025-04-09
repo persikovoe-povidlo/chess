@@ -8,5 +8,5 @@ class Scene:
     def draw(self):
         pass
 
-    def listen(self):
+    def listen(self, data):
         pass

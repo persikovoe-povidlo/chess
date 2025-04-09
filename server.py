@@ -27,14 +27,14 @@ class Server:
             connection, addr = self.socket.accept()
             if self.player_w is None:
                 self.player_w = connection
-            else:
+            elif self.player_b is None:
                 self.player_b = connection
             Thread(target=self.listen, args=(connection,)).start()
 
     def listen(self, connection):
         try:
             while self.running:
-                data = connection.recv(1024).decode()
+                data = connection.recv(10).decode()
                 if data == 'disconnect':
                     if connection == self.player_w:
                         self.player_w = None
@@ -57,6 +57,9 @@ class Server:
                     self.send_to_players(data)
 
                 elif data[0] == 'n':
+                    self.send_to_players(data)
+
+                elif data == 'undo':
                     self.send_to_players(data)
         except:
             print('connection to client lost')

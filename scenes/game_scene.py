@@ -169,19 +169,14 @@ class GameScene(Scene):
         self.buttons['replay'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
                                          constants.SCREEN_HEIGHT // 2 + constants.TILE_SIZE - constants.TILE_SIZE // 2,
                                          constants.TILE_SIZE, constants.TILE_SIZE, 'green', 'green3',
-                                         action=lambda: self.app.change_scene('game')))
+                                         action=lambda: self.app.socket.send('start_game'.encode())))
 
-    def listen(self):
-        data = self.app.socket.recv(1024).decode()
-
+    def listen(self, data):
         if data[:5] == 'start':
             if data[6] == 'w':
                 self.app.change_scene('game', color='white')
             elif data[6] == 'b':
                 self.app.change_scene('game', color='black')
-
-        elif data == 'disconnect':
-            self.app.running = False
 
         elif data[0] == 'm':
             row1, col1, row2, col2 = map(int, data[1:5])
@@ -197,6 +192,9 @@ class GameScene(Scene):
                 self.new_piece(Bishop(self, int(data[2]), int(data[3]), data[4:9]))
             if p == 'r':
                 self.new_piece(Rook(self, int(data[2]), int(data[3]), data[4:9]))
+
+        elif data == 'undo':
+            self.undo()
 
     def logic(self, event):
         if not self.game_over and self.can_move:
@@ -244,7 +242,7 @@ class GameScene(Scene):
         self.buttons['undo'] = (Button(self, constants.BOARD_POS_X - constants.TILE_SIZE * 2,
                                        constants.SCREEN_HEIGHT // 2 - constants.TILE_SIZE // 2, constants.TILE_SIZE,
                                        constants.TILE_SIZE, 'gray30', 'gray27', image='assets/undo.png',
-                                       action=self.undo))
+                                       action=lambda: self.app.socket.send('undo'.encode())))
 
     def draw_buttons(self):
         for button in self.buttons.values():
