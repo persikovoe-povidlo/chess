@@ -309,7 +309,7 @@ class GameScene(Scene):
         if self.board[piece.row][piece.col]:
             if self.board[piece.row][piece.col] in self.active_player.pieces:
                 self.active_player.pieces.remove(self.board[piece.row][piece.col])
-            else:
+            elif self.board[piece.row][piece.col] in self.inactive_player.pieces:
                 self.inactive_player.pieces.remove(self.board[piece.row][piece.col])
         self.board[piece.row][piece.col] = piece
         if piece.color == self.active_player.king.color:
